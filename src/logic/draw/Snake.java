@@ -57,15 +57,17 @@ public class Snake extends Drawable {
 	
 	// the first point will be the head!
 	LinkedList<Pointd> points = new LinkedList<Pointd>();
+	Pointd previousHead;
 
 	/* Constructor ***************/
 	public Snake(int x0, int y0, int dir) {
-		points.add(new Pointd(x0, y0));
+		direction = dir;
+		computeDs();
+		previousHead = new Pointd(x0, y0); 
+		points.add(previousHead);
 		double x1 = x0 + dx;
 		double y1 = y0 + dy;
 		points.addFirst(new Pointd((int)x1, (int)y1));
-		direction = dir;
-		computeDs();
 	}
 	
 	/* Properties of the snake **********************************************/
@@ -189,6 +191,7 @@ public class Snake extends Drawable {
 		// the head
 		{
 		Pointd head = points.getFirst();
+		previousHead = (Pointd)head.clone();
 		head.x += dx;
 		head.y += dy;
 		}
@@ -271,8 +274,7 @@ public class Snake extends Drawable {
 	
 	public boolean isSnakeColliding(Snake other) {
 		Pointd p1other = other.getHead(),
-				p2other = other.getSecondPoint();
-				//p2other = other.getPreviousHead();
+				p2other = other.getPreviousHead();
 		Line lineOther = new Line(p1other, p2other);
 		boolean otherHorizontal = p1other.y == p2other.y;
 		
@@ -328,11 +330,8 @@ public class Snake extends Drawable {
 	public Pointd getHead() {
 		return points.getFirst();
 	}
-	/*public Pointd getPreviousHead() {
+	public Pointd getPreviousHead() {
 		return previousHead;
-	}*/
-	public Pointd getSecondPoint() {
-		return points.get(1);
 	}
 	
 	public Pointd getPointd() {
