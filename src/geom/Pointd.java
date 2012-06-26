@@ -1,5 +1,7 @@
 package geom;
 
+import logic.Arith;
+
 public class Pointd {
 	public double x, y;
 	public Pointd(double x0, double y0) {
@@ -16,6 +18,6 @@ public class Pointd {
 	}
 	
 	public boolean equals(Pointd other) {
-		return other.x == x && other.y == y;
+		return Arith.equalsd(other.x, x) && Arith.equalsd(other.y, y);//other.x == x && other.y == y;
 	}
 }
