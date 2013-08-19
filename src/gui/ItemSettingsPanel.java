@@ -32,6 +32,8 @@ public class ItemSettingsPanel extends JPanel {
 	
 	public ItemSettingsPanel() {
 		
+		
+		
 		addItemsOnly();
 		addItemsProbs();
 		addApplyButton();
@@ -46,7 +48,6 @@ public class ItemSettingsPanel extends JPanel {
 			for (int i=0; i<weights.length; ++i)
 				weights[i] = itemBoxes[i].getSelectedWeight();
 			AllTheItems.setProbabilities(weights);
-			System.out.println("Set probs");
 		}
 	}
 	
@@ -120,7 +121,7 @@ class OneItemProbBoxes {
 		for (int i=0; i<4; ++i) {
 			cbs[i] = new JCheckBox();
 			
-			// action listener: we can only select boxes, not unselect
+			// action listener: we can only select boxes, not deselect
 			final int j = i;
 			cbs[i].addActionListener(
 				new ActionListener() {
