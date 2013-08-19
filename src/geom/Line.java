@@ -139,14 +139,14 @@ public class Line extends GeometricObject {
 
 	@Override
 	public Pointd intersect(Circle other) {
-		//return other.intersect(this);
-		throw new UnsupportedOperationException("todo Line.intersect(Circle)");
+		return other.intersect(this);
+		//throw new UnsupportedOperationException("todo Line.intersect(Circle)");
 	}
 
 	@Override
 	public Pointd intersect(Rectangle other) {
-		//return other.intersect(this);
-		throw new UnsupportedOperationException("todo Line.intersect(Rectangle)");
+		return other.intersect(this);
+		//throw new UnsupportedOperationException("todo Line.intersect(Rectangle)");
 	}
 
 	@Override
@@ -156,8 +156,7 @@ public class Line extends GeometricObject {
 
 	@Override
 	public void draw(Graphics g) {
-		// TODO Auto-generated method stub
-		
+		g.drawLine((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 	}
 	
 }
