@@ -22,8 +22,9 @@ public class SettingsWindow extends JFrame {
 		
 		tabs = new JTabbedPane(JTabbedPane.LEFT);
 		
-		tabs.add("Snakes", new SnakeSettings(control));
-		tabs.add("Items", null); // TODO add items tab
+		tabs.add("General", new GeneralSettingsPanel());
+		tabs.add("Snakes", new SnakeSettingsPanel());
+		tabs.add("Items", new ItemSettingsPanel());
 		
 		add(tabs);
 		
@@ -32,9 +33,6 @@ public class SettingsWindow extends JFrame {
 		setLocationRelativeTo(null);
 	}
 	
-	public void setVisible(boolean v) {
-		super.setVisible(v);
-	}
 }
 
 class SetActionKeyListener implements KeyListener {
