@@ -1,14 +1,18 @@
 package logic.draw.snakes;
 
 import geom.Pointd;
+import geom.Vector2D;
 
+import java.awt.Polygon;
 import java.util.Iterator;
+import java.util.LinkedList;
 
 import logic.Arith;
 import logic.Globals;
 
 public class ClassicSnake extends Snake {
 
+	// dir has a different encoding
 	public ClassicSnake(int x0, int y0, int dir) {
 		super(x0, y0, dir);
 	}
@@ -118,4 +122,61 @@ public class ClassicSnake extends Snake {
 		}
 	}
 
+	public void computeHull() {
+		LinkedList<Pointd> newHull = new LinkedList<Pointd>();
+
+		// do a first forward traversal, then a backward traversal of points
+		Iterator<Pointd> it_pts = points.iterator();
+		for (int i=0; i<2; ++i) {
+			Pointd p1 = it_pts.next(), p2 = it_pts.next(), p3;
+			
+			Vector2D v = new Vector2D(p1, p2);
+			Vector2D v_norm = v.normal();
+			newHull.add(v_norm.add(p1));
+			while (it_pts.hasNext()) {
+				p3 = it_pts.next();
+				
+				
+				// TODO not correct for now
+				boolean turn_right;
+				if (p1.x == p2.x) {
+					turn_right = (p2.y - p1.y)*(p3.x - p2.x) > 0;
+				}
+				else {
+					turn_right = (p2.x - p1.x) * (p3.y - p2.y) < 0; 
+				}
+				Pointd p;
+				if (turn_right) { // turning right
+					v = new Vector2D(p2, p1).add(new Vector2D(p2, p3));
+					p = v.add(p2);
+					newHull.add(p);
+				}
+				else { // turning left
+					v = new Vector2D(p3, p2);
+					p = v.add(p2);
+					newHull.add(p);
+					v = new Vector2D(p1, p2);
+					p = v.add(p2);
+					newHull.add(p);
+				}
+				p1 = p2;
+				p2 = p3;
+			}
+			v = new Vector2D(p1, p2);
+			newHull.add(v.add(p2));
+			it_pts = points.descendingIterator(); // for the 2nd traversal
+		}
+		
+		// now actually update the variables
+		hull_points = newHull;
+		hull = new Polygon();
+		it_pts = hull_points.iterator();
+		while (it_pts.hasNext()) {
+			Pointd p = it_pts.next();
+			hull.addPoint((int)p.x, (int)p.y);
+		}
+		
+		throw new UnsupportedOperationException("TODO: computeHull() for classic mode");
+	}
+	
 }

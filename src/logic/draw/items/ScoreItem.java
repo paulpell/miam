@@ -5,11 +5,14 @@ import geom.Rectangle;
 import java.awt.Graphics;
 import java.awt.Color;
 
+import javax.swing.ImageIcon;
+
+import logic.Game;
+import logic.draw.snakes.Snake;
+
 
 
 public class ScoreItem extends Item {
-	// geography
-	//private Pointd position;
 	
 	// snake-related
 	int score, growth;
@@ -21,33 +24,32 @@ public class ScoreItem extends Item {
 		position = new Pointd(x0, y0);
 	}
 
-	public int getGrowth() {
-		return growth;
-	}
-	public int getScore () {
-		return score;
-	}
-	public double getThickness() {
-		return 0;
-	}
-	public boolean isPersistent() {
-		return false;
-	}
-	public boolean isReversing() {
-		return false;
-	}
 	
 	public void draw(Graphics g) {
 		g.setColor(new Color(10, 180, 50));
 		shape.draw(g);
 	}
-	/*
-	public Pointd getPointd() {
-		return position;
-	}*/
 
-	/*public boolean isPointInside(Pointd p) {
-		return shape.isPointInside(p);
-	}*/
-
+	@Override
+	public boolean effectStep(Snake s) {
+		return true; // immediately finished
+	}
+	public void startEffect(Snake s) {
+		s.addScore(score);
+		s.growBy(growth);
+	}
+	
+	@Override
+	public Object clone(Game g) {
+		return new ScoreItem(position.x, position.y);
+	}
+	@Override
+	public ImageIcon getImageIcon() {
+		return null;
+	}
+	
+	public String getTextDescription() {
+		return "Score";
+	}
+	
 }

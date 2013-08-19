@@ -1,34 +1,61 @@
 package logic;
 
+import geom.Pointd;
+
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Vector;
 
-import logic.draw.Item;
-import logic.draw.ReversingItem;
-import logic.draw.Snake;
-import logic.draw.ClassicSnake;
-import logic.draw.ScoreItem;
-import logic.draw.SurroundingWall;
-import logic.draw.Wall;
+import logic.draw.Drawable;
+import logic.draw.items.Item;
+import logic.draw.items.ItemCreator;
+import logic.draw.snakes.ClassicSnake;
+import logic.draw.snakes.Snake;
+import logic.draw.walls.DefaultWall;
+import logic.draw.walls.Wall;
 
 public class Game {
 
 	
-	private Control control;
+	private final Control control;
+	private final ItemCreator itemCreator;
 	
 	// here we store all the game objects
-	private Vector<Snake> snakes = new Vector<Snake>();
-	int aliveSnakes;
-	private Vector<Item> items = new Vector<Item>();
+	private Vector<Snake> snakes;
+	private int aliveSnakes;
+	private Vector<Item> items;
 	private Wall wall;
 
+
 	public Game(Control gc) {
-		// TODO gc.configure(this); or configure(someGameConfiguration);
-		int numberOfSnakes = Globals.NUMBER_OF_SNAKES;
+		this(gc, new Vector<Item>(), new DefaultWall());
+	}
+
+	public Game(Control gc, Wall wall) {
+		this(gc, new Vector<Item>(), wall);
+	}
+	
+	public Game(Control gc, Vector<Item> items) {
+		this(gc, items, new DefaultWall());
+		//items.addAll(items);
+	}
+	
+	public Game(Control gc, Vector<Item> init_items, Wall init_wall) {
+		// TODO control.configure(this); or configure(someGameConfiguration);
+		
 		control = gc;
-		// add the stuff to draw
+		
+		
+		////////////////////
+		/////// add the stuff to draw
+		
+		items = init_items;
+		
+		// snakes 
+		snakes = new Vector<Snake>();
 		Snake s = null;
-		for (int i=0; i<numberOfSnakes; ++i) {
+		aliveSnakes = Globals.NUMBER_OF_SNAKES;
+		for (int i=0; i<aliveSnakes; ++i) {
 			int x = 30 + 30 * i, y = 200 - 40 * i;
 			if (Globals.USE_CLASSIC_SNAKE) {
 				s = new ClassicSnake(x, y, 2);
@@ -38,21 +65,31 @@ public class Game {
 			}
 			snakes.add(s);
 		}
-		aliveSnakes = numberOfSnakes;
-		
-		items.add(new ScoreItem(20, 9));
-		items.add(new ScoreItem(40, 8));
-		items.add(new ScoreItem(12, 10));
-		
-		items.add(new ReversingItem(100, 50));
+		//Snake.resetIds();
 
-		wall = new SurroundingWall();
+		// items and level (constructor initializes the automatic creation of new items --> timer)
+		itemCreator = new ItemCreator(this, Globals.SCORE_ITEMS_ONLY);
+		for (int i=0; i<3;++i) {
+			addItem(itemCreator.createScoreItem(snakes));
+		}
 		
-		control.addDrawables(snakes);
-		control.addDrawables(items);
-		control.addDrawable(wall);
-
-		Snake.resetIds();
+		wall = init_wall;
+		
+		
+		Globals.currentGame = this;
+	}
+	
+	
+	
+	/* *************************************
+	 * Helper functions
+	 */
+	public int getNumberOfSnakes() {
+		return snakes.size();
+	}
+	
+	public Vector<Snake> getSnakes() {
+		return snakes;
 	}
 	
 	public Snake getSnake(int index) {
@@ -62,9 +99,27 @@ public class Game {
 		return null;
 	}
 	
+	public void addItem(Item item) {
+		items.add(item);
+	}
+	
+	public Iterator<Drawable> getDrawablesIterator() {
+		Vector<Drawable> drawables = new Vector<Drawable>();
+		
+		drawables.add(wall);
+		drawables.addAll(snakes);
+		drawables.addAll(items);
+		
+		return drawables.iterator();
+	}
+	
+
+	/**************** The main function for a game, where snakes are moved */
+	
 	public void update() {
 		
-		// we place it here, so the final step can be drawn
+		
+		// we check this here, so the final step can be drawn (paint is called one last time after previous update())
 		if (aliveSnakes == 0) {
 			control.endGame();
 		}
@@ -75,6 +130,7 @@ public class Game {
 			s.advance();
 		}
 		
+		Pointd collision;
 		// check for collisions..
 		for (Enumeration<Snake> e = snakes.elements(); e.hasMoreElements();) {
 			Snake s = e.nextElement();
@@ -82,47 +138,37 @@ public class Game {
 			if (s.isAlive()) {
 				
 				// .. against the wall
-				boolean kill = wall.isSnakeColliding(s);
+				collision = wall.isSnakeColliding(s);
 				// .. and against the other snakes
-				if (!kill) {
+				if (collision == null) {
 					for  (Enumeration<Snake> e2 = snakes.elements(); e2.hasMoreElements(); ) {
 						Snake s2 = e2.nextElement();
-						kill = s2.isSnakeColliding(s);
-						if (kill) {
+						collision = s2.isSnakeColliding(s);
+						if (collision != null) {
 							break;
 						}
 					}
 				}
-				if (kill) { // don't remove from the lists
-					System.out.println("Snake dies!");
-					s.kill();
+				if (collision != null) {
+					s.kill(collision);
 					--aliveSnakes;
 				}
-				// .. check the remaining items
-				if (s.isAlive()) {
-					for (Enumeration<Item> its = items.elements(); its.hasMoreElements(); ) {
-						Item item = its.nextElement();
-						if (item.isSnakeColliding(s)) {
-							s.acceptItem(item);
-							if (!item.isPersistent()) {
-								items.remove(item);
-								control.removeDrawable(item);
-							}
-							break;
-						}
+			}
+			// .. check the remaining items
+			if (s.isAlive()) { // (might have died in between)
+				for (Enumeration<Item> its = items.elements(); its.hasMoreElements(); ) {
+					Item item = its.nextElement();
+					collision = item.isSnakeColliding(s);
+					if (collision != null) {
+						s.acceptItem(item);
+						items.remove(item);
+						// replace by a new item
+						Item i = itemCreator.createItem(snakes);
+						addItem(i);
+						break;
 					}
 				}
 			}
 		}
-	}
-
-	public void setTurnLeft(int snakeIndex, boolean val) {
-		snakes.get(snakeIndex).setTurnLeft(val);
-	}
-	public void setTurnRight(int snakeIndex, boolean val) {
-		snakes.get(snakeIndex).setTurnRight(val);
-	}
-	public void setSpeedup(int snakeIndex, boolean val) {
-		snakes.get(snakeIndex).setSpeedup(val);
 	}
 }

@@ -10,16 +10,18 @@ import logic.draw.snakes.Snake;
 
 public abstract class SpecialItem extends Item {
 
-	Game game; // we often need to place items or such things
+	//Game game; // we often need to place items or such things
 	
-	public abstract void activate(Snake s);
+	// When the snake uses its special item.
+	// return true if the object is consumed (not usable again)
+	public abstract boolean activate(Snake s);
 	
 
-	// overrides
-	public int getScore() {return 0;}
-	public int getGrowth() {return 0;}
-	public double getThickness() {return 0;}
-	public boolean isPersistent() {return false;}
-	public boolean isReversing() {return false;}
-
+	//public abstract Object clone(Game g);
+	/*final public Object clone() {
+		throw new UnsupportedOperationException("Impossible to clone a special item without specifying a game");
+	}*/
+	
+	public boolean effectStep(Snake s){ return true;} // no during effect, normally
+	public void startEffect(Snake s) {}
 }

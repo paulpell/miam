@@ -1,17 +1,23 @@
 package logic;
 
 
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.Vector;
+
+import javax.swing.SwingUtilities;
+
+import net.GameClient;
+import net.GameServer;
 
 
 import static java.awt.event.KeyEvent.*;
 
-import gui.GUI;
+import gui.GameWindow;
+import gui.NetworkSettingsFrame;
 import gui.SettingsWindow;
+import gui.editor.LevelEditor;
 import logic.actions.SnakeAction;
 import logic.draw.Drawable;
 
@@ -21,15 +27,23 @@ public class Control {
 	Game game;
 	Timer timer;
 	TimerTask task;
-	GUI gui;
+	GameWindow gameWindow;
 	SettingsWindow settingsWin;
 	
+	GameClient gameClient;
 	
-	Vector<Drawable> drawables;
+	int nextSnakeIndex;
+	
+	
 	
 	public Control() {
-		gui = new GUI(this);
-		settingsWin = new SettingsWindow(this); // is invisible
+		SwingUtilities.invokeLater(new Thread() {
+			public void run() {
+				gameWindow = new GameWindow(Control.this); // exits on close
+				settingsWin = new SettingsWindow(Control.this); // is invisible
+			}
+		});
+		Globals.control = this;
 	}
 	
 	public void log(String message) {
@@ -41,25 +55,15 @@ public class Control {
 		return state;
 	}
 	
-	public boolean gameRunning() {
+	public boolean isGameRunning() {
 		return state == GAME_STATE.GAME;
 	}
 	
+	
 	/* Drawable methods ***************/
-	public void addDrawables(Collection<? extends Drawable> ds) {
-		drawables.addAll(ds);
-	}
-	
-	public void addDrawable(Drawable d) {
-		drawables.add(d);
-	}
-	
-	public boolean removeDrawable(Drawable d) {
-		return drawables.remove(d);
-	}
 	
 	public Iterator<Drawable> getDrawablesIterator() {
-		return drawables.iterator();
+		return game.getDrawablesIterator();
 	}
 	
 
@@ -72,20 +76,24 @@ public class Control {
 	}
 	
 	private void newGame() {
+		nextSnakeIndex = 0;
 		state = GAME_STATE.GAME;
-		drawables = new Vector<Drawable>();
+		//drawables = new Vector<Drawable>();
 		game = new Game(this);
-		task = newTask();
+		gameWindow.resetInfoPanel(game.getSnakes());
+		
+		// updating, drawing thread
+		task = createTimerTask();
 		timer = new Timer();
 		timer.scheduleAtFixedRate(task, 0, 1000 / Globals.FPS);
 	}
 	
-	private TimerTask newTask() {
+	private TimerTask createTimerTask() {
 		return new TimerTask() {
 			public void run() {
-				if (gameRunning()) {
+				if (isGameRunning()) {
 					game.update();
-					gui.repaint();
+					gameWindow.repaint();
 				}
 			}
 		};
@@ -102,20 +110,14 @@ public class Control {
 		settingsWin.setVisible(!vis);
 	}
 	
-	public void fpsChanged(int fps) {
-		Globals.FPS = fps;
 
-		if (game != null) {
-			timer = new Timer();
-			task = newTask();
-			timer.scheduleAtFixedRate(task, 0, 1000 / Globals.FPS);
-			System.out.println("new fps");
-		}
+	/* Fire up the level editor *********************************/
+	private void levelEditor() {
+		new LevelEditor();
 	}
 	
-	public void snakeSpeedChanged(int speed) {
-		Globals.SNAKE_NORMAL_SPEED = speed;
-		Globals.SNAKE_ANGLE_DIFF = 4 * speed;
+	private void networkSettings() {
+		new NetworkSettingsFrame();
 	}
 	
 	/* Interaction methods (keyboard) ***************************/
@@ -135,7 +137,7 @@ public class Control {
 			state = GAME_STATE.GAME_OVER;
 			break;
 		}
-		gui.repaint();
+		gameWindow.repaint();
 	}
 	
 	public void newPressed() {
@@ -145,20 +147,14 @@ public class Control {
 	}
 	
 	/* Pause *******************************/
-	/*private void setPause() {
-		if (state == GAME_STATE.GAME) {
-			state = GAME_STATE.PAUSE;
-			gui.setPause(true);
-		}
-	}*/
 	private void togglePause() {
 		if (state == GAME_STATE.PAUSE) {
 			state = GAME_STATE.GAME;
-			gui.setPause(false);
+			gameWindow.setPause(false);
 		}
 		else if (state == GAME_STATE.GAME) {
 			state = GAME_STATE.PAUSE;
-			gui.setPause(true);
+			gameWindow.setPause(true);
 		}
 	}
 	
@@ -167,7 +163,8 @@ public class Control {
 		if (game != null) {
 			SnakeAction action = Globals.getPressedAction(key);
 			if (action != null) {
-				action.perform(game.getSnake(action.getSnakeIndex()));
+				//action.perform(game.getSnake(action.getSnakeIndex()));
+				localAction(action);
 			}
 			else { // add other stuff to handle during the game
 				if (key == VK_P) {
@@ -176,24 +173,84 @@ public class Control {
 			}
 		}
 		
-		/* All time ****/
-		if (key == VK_S) {
-			toggleSettingsWindowVisible();
+		else {
+		/* outside game ****/
+			switch(key) {
+			case VK_S:
+				toggleSettingsWindowVisible();
+				break;
+			case VK_ESCAPE:
+				escPressed();
+				break;
+			case VK_SPACE: case VK_N:
+				newPressed();
+				break;
+			case VK_E:
+				levelEditor();
+				break;
+			case VK_O:
+				networkSettings();
+				break;
+			default:
+				break;
+			}
 		}
-		if (key == VK_ESCAPE) {
+		
+		/* Always valid */
+		switch(key) {
+		case VK_ESCAPE:
 			escPressed();
-		}
-		if (key == VK_SPACE || key == VK_N) {
-			newPressed();
+			break;
+		default:
+			break;
 		}
 	}
 	
 	public void keyReleased(int key) {
 		if (game != null) {
-			SnakeAction action = Globals.getReleasedAction(key);
+			/*SnakeAction action = Globals.getReleasedAction(key);
 			if (action != null) {
 				action.perform(game.getSnake(action.getSnakeIndex()));
+			}*/
+			localAction(Globals.getReleasedAction(key));
+		}
+	}
+	
+	public void localAction(SnakeAction action) {
+		if (action != null) {
+			action.perform(game.getSnake(action.getSnakeIndex()));
+			if (Globals.online) {
+				gameClient.sendAction(action);
 			}
+		}
+	}
+	
+	public void onNetworkAction(SnakeAction action) {
+		action.perform(game.getSnake(action.getSnakeIndex()));
+	}
+
+	public int getNextSnakeIndex() {
+		return nextSnakeIndex++;
+	}
+
+	////////////////////////////////////////////
+	// 
+	// Network methods
+	public void joinGame() {
+		try {
+			gameClient = new GameClient(this);
+		} catch (IOException e) {
+			System.err.println("Could not join a game: " + e.getLocalizedMessage());
+		}
+	}
+	
+	public void hostGame() {
+		try {
+			new GameServer();
+			// snake 0 is the snake on host
+			gameClient = new GameClient(this, 0);
+		} catch (IOException e) {
+			System.err.println("Could not start server: "+e.getLocalizedMessage());
 		}
 	}
 
