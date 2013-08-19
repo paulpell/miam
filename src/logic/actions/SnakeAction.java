@@ -1,11 +1,11 @@
 package logic.actions;
 
-import logic.draw.Snake;
+import logic.draw.snakes.Snake;
 
 
 public abstract class SnakeAction {
 	protected int snakeIndex;
-	public SnakeAction(int i) {
+	protected SnakeAction(int i) {
 		snakeIndex = i;
 	}
 	public int getSnakeIndex() {

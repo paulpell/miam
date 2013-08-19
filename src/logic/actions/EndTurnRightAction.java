@@ -1,8 +1,8 @@
 package logic.actions;
 
-import logic.draw.Snake;
+import logic.draw.snakes.Snake;
 
-public class EndTurnRightAction extends SnakeAction {
+public class EndTurnRightAction extends SnakeAction implements EndAction {
 
 	public EndTurnRightAction(int i) {
 		super(i);
