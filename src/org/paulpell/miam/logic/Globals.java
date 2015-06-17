@@ -1,25 +1,5 @@
 package org.paulpell.miam.logic;
 
-import java.util.HashMap;
-
-import java.awt.event.KeyEvent;
-
-import org.paulpell.miam.logic.actions.EndSpeedupAction;
-import org.paulpell.miam.logic.actions.EndTurnLeftAction;
-import org.paulpell.miam.logic.actions.EndTurnRightAction;
-import org.paulpell.miam.logic.actions.SnakeAction;
-import org.paulpell.miam.logic.actions.StartSpeedupAction;
-import org.paulpell.miam.logic.actions.StartTurnLeftAction;
-import org.paulpell.miam.logic.actions.StartTurnRightAction;
-import org.paulpell.miam.logic.actions.UseSpecialAction;
-import org.paulpell.miam.logic.draw.items.ProbabilizedItem;
-import org.paulpell.miam.net.Client;
-
-
-
-import static java.awt.event.KeyEvent.*;
-
-
 /*
  * An ugly class containing many globals. We make sure there is only one writer for
  * each of these variables, to ensure a minimum of security. We love 'public'!
@@ -27,19 +7,12 @@ import static java.awt.event.KeyEvent.*;
 
 public class Globals {
 	
-	
+
+	public static boolean ACTION_DEBUG = false;
 	public static boolean NETWORK_DEBUG = true;
-	public static boolean CLASSIC_DEBUG = true;
+	public static boolean CLASSIC_DEBUG = false;
 
 	public static int FPS = 25;
-	
-	public static Game currentGame;
-	public static Control control;
-	
-
-
-	
-	public static int GAME_MESSAGE_TLL = 10000; // [ms], how long a msg is displayed
 	
 	
 	
@@ -66,8 +39,9 @@ public class Globals {
 	
 	public static double SCORE_ITEM_PROBABILITY = 0.7; // in the interval [0,1]
 	public static boolean SCORE_ITEMS_ONLY = false;
-	public static long TIME_BETWEEN_ITEMS_MAX = 5000; // ms
-	public static long TIME_BETWEEN_ITEMS_MIN = 3000; // ms
+	public static boolean CREATE_EXTRA_ITEMS = true;
+	public static long TIME_BETWEEN_EXTRA_ITEMS_MAX = 5000; // ms
+	public static long TIME_BETWEEN_EXTRA_ITEMS_MIN = 3000; // ms
 	
 
 	
@@ -80,5 +54,8 @@ public class Globals {
 	// NETWORK
 	
 	public final static int ONLINE_PORT = 13913;
-	public static int ONLINE_DEFAULT_PLAYER_NUMBER = 2;
+	// number of players and of clients is different...
+	public static int ONLINE_DEFAULT_PLAYER_MAX_NUMBER = 2;
+	public static int ONLINE_DEFAULT_CLIENT_MAX_NUMBER = 5;
+	
 }

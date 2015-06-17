@@ -1,7 +1,7 @@
 package org.paulpell.miam.logic.draw.items;
 
 
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 
 import javax.swing.ImageIcon;
 
@@ -9,7 +9,6 @@ import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Game;
-import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
@@ -20,6 +19,8 @@ public class BananaSpecial extends SpecialItem
 	private static ImageIcon s_image = new ImageIcon("images/BananaSpecial.png");
 	private static int s_width = s_image.getIconWidth();
 	private static int s_height = s_image.getIconHeight();
+	
+	Game game_;
 	
 	// for network, as nothing can be random:
 	// it is initialized on master, and sent as extra param, so the bananas on all
@@ -35,6 +36,8 @@ public class BananaSpecial extends SpecialItem
 		position_ = new Pointd(x0, y0);
 		
 		bananaExtra_ = new Banana(0,0).getExtraParamsDescription();
+		
+		game_ = g;
 	}
 	
 	
@@ -44,7 +47,7 @@ public class BananaSpecial extends SpecialItem
 		Pointd pos = s.getTail();
 		Banana b = new Banana(pos.x_, pos.y_);
 		b.applyExtraParamsDescription(bananaExtra_);
-		Globals.currentGame.addItem(b);
+		game_.addItem(b);
 		return true; // the object is usable only once
 	}
 	
@@ -58,7 +61,7 @@ public class BananaSpecial extends SpecialItem
 	}
 	
 	@Override
-	public void draw(Graphics g)
+	public void draw(Graphics2D g)
 	{
 		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, (int)s_width, (int)s_height, null);
 	}
@@ -93,5 +96,12 @@ public class BananaSpecial extends SpecialItem
 	public void applyExtraParamsDescription(String params)
 	{
 		bananaExtra_ = params;
+	}
+
+
+	@Override
+	public boolean shouldDisplayInPanelInfo()
+	{
+		return true;
 	}
 }

@@ -3,10 +3,13 @@ package org.paulpell.miam.logic;
 
 import static java.awt.event.KeyEvent.*;
 
+import java.awt.Color;
+
+
 public class Constants
 {
 	
-	public static double EPSILON = .005;
+	public final static double EPSILON = .005;
 	
 	
 	
@@ -27,14 +30,14 @@ public class Constants
 	}
 	
 	// screen size
-	public final static int DEFAULT_IMAGE_WIDTH 	= 600;
-	public final static int DEFAULT_IMAGE_HEIGHT 	= 600;
+	public final static int DEFAULT_IMAGE_WIDTH 	= 600; // pixels
+	public final static int DEFAULT_IMAGE_HEIGHT 	= 600; // pixels
 	
 	// directions
 	public final static int DIR_LEFT 	= 0;
 	public final static int DIR_UP 		= 1;
 	public final static int DIR_RIGHT 	= 2;
-	public final static int DIR_DOWN 	= 3; // negative y_, not down on screen
+	public final static int DIR_DOWN 	= 3; // negative y, actually the opposite of "down on screen"
 	
 	
 	// SNAKE
@@ -45,9 +48,13 @@ public class Constants
     public final static int SNAKE_ACTION_TURN_RIGHT = 1;
     public final static int SNAKE_ACTION_SPEEDUP 	= 2;
     public final static int SNAKE_ACTION_SPECIAL 	= 3;
+    
+    public final static int SNAKE_END_ACTION		= 16;
+
+	public final static int ENCODED_ACTION_SIZE = 5;
 
 
-	public final static int MAX_NUMBER_OF_SNAKES = 4;
+	public final static int MAX_NUMBER_OF_SNAKES 	= 4;
 	
 	// ITEMS
 	public final static int ITEM_HIGH_PROB_WEIGHT 	= 5;
@@ -57,10 +64,23 @@ public class Constants
 	
 
 	
-	public static int BANANA_MIN_DURATION = 15; // steps
-	public static int BANANA_EXTRA_DURATION = 30; // steps
+	public final static int BANANA_MIN_DURATION 	= 30; // steps
+	public final static int BANANA_EXTRA_DURATION	= 15; // steps
+	public final static int BANANA_SCORE			= 5;
 	
-	public static long DEFAULT_TIME_BETWEEN_ITEMS_MAX = 4000; // ms
-	public static long DEFAULT_TIME_BETWEEN_ITEMS_MIN = 2000; // ms
+	public final static long DEFAULT_TIME_BETWEEN_ITEMS_MAX = 3000; // ms
+	public final static long DEFAULT_TIME_BETWEEN_ITEMS_MIN = 1500; // ms
+	
+	
+	// GUI
+	public final static Color WELCOME_COLOR			= new Color(120, 20, 80);
+	public final static Color DRAGGER_COLOR			= new Color(110, 17, 74);
+	public final static int TOP_PANEL_HEIGHT 		= 40;
+	
+	// OTHER
+	public final static char START_GREEK_ALPHABET 	= '\u03b1';
+	
+	public final static int THREAD_PRIORITY_GUI 	= Thread.MAX_PRIORITY;
+	
 	
 }

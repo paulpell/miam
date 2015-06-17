@@ -4,10 +4,9 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.KeyboardFocusManager;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
@@ -15,11 +14,13 @@ import java.awt.event.WindowListener;
 
 import java.util.Vector;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import org.paulpell.miam.gui.net.OnlinePlayersPanel;
+import org.paulpell.miam.gui.net.OnlineServersPanel;
+import org.paulpell.miam.gui.settings.SettingsPanel;
+import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
@@ -38,7 +39,6 @@ public class MainFrame
 	
 	AbstractDisplayPanel currentPanel_; // reference to one of the following panels
 	
-	//NetworkSettingsPanel networkPanel_;
 	GamePanel gamePanel_;
 	SettingsPanel settingsPanel_;
 	WelcomePanel welcomePanel_;
@@ -55,29 +55,42 @@ public class MainFrame
 	{
 
 		super(title_);
+		
 		control_ = control;
-		KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-		kfm.addKeyEventDispatcher(new MainKeyDispatcher(this));
+
+		//setUndecorated(true);
+		
+		GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+		int screenwidth = gd.getDisplayMode().getWidth();
+		int screenheight = gd.getDisplayMode().getHeight();
+		int appearx = (screenwidth - Constants.DEFAULT_IMAGE_WIDTH) / 2;
+		int appeary = (screenheight - Constants.DEFAULT_IMAGE_HEIGHT) / 2;
+		setLocation(appearx, appeary);
+		
+		
 		
 		welcomePanel_ = new WelcomePanel("welcome :)");
-		
 		gamePanel_ = new GamePanel(control_);
-		
 		currentPanel_ = welcomePanel_;
 		setNewPanel(currentPanel_);
 
 		addKeyListener(this);
-		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		addWindowListener(this);
+		
 		setVisible(true);
+		
+		showWelcomePanel(); // do it after setVisible, to enable animation
 	}
 	
-	private JPanel createTopPanel()
+	/*private JPanel createTopPanel()
 	{
 		JPanel panel = new JPanel();
-		JButton gamePanelButton = new JButton("Back");
-		gamePanelButton.addActionListener(new ActionListener() {
+		JButton gamePanelButton = new JButton("Main menu");
+		gamePanelButton.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent arg0) {
+			public void actionPerformed(ActionEvent arg0)
+			{
 				showWelcomePanel();
 			}
 		});
@@ -85,7 +98,7 @@ public class MainFrame
 		panel.doLayout();
 		panel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(10, 10, 10)));
 		return panel;
-	}
+	}*/
 
 
 	// we want to pass the key events to control when welcome and game panels are active 
@@ -133,12 +146,14 @@ public class MainFrame
 	}
 	public void showWelcomePanel()
 	{
-		isTopPanelVisible_ = false;
+		isTopPanelVisible_ = true;
 		setNewPanel(welcomePanel_);
+		welcomePanel_.startAnimating();
 	}
 	
 	private void setNewPanel(AbstractDisplayPanel panel)
 	{
+		
 		remove(currentPanel_);
 		currentPanel_.setVisible(false);
 		currentPanel_ = panel;
@@ -146,7 +161,7 @@ public class MainFrame
 		if (isTopPanelVisible_)
 		{
 			if (null == topPanel_)
-				topPanel_ = createTopPanel();
+				topPanel_ = new TopPanel(this);
 			add(topPanel_, BorderLayout.NORTH);
 		}
 		else if (null != topPanel_)
@@ -155,7 +170,9 @@ public class MainFrame
 		add(currentPanel_);
 		currentPanel_.setVisible(true);
 		
-		setMinimumSize(currentPanel_.getPreferredSize());
+		Dimension size = currentPanel_.getPreferredSize();
+		setMinimumSize(size);
+		setMaximumSize(size);
 		
 		pack();
 		repaint();
@@ -171,7 +188,10 @@ public class MainFrame
 	
 	
 	
-	
+	public boolean isCurrentPanelWelcome()
+	{
+		return currentPanel_ == welcomePanel_;
+	}
 	
 	public void resetGameInfoPanel(Vector<Snake> v, Dimension gamePanelSize)
 	{
@@ -188,10 +208,55 @@ public class MainFrame
 		gamePanel_.setGameover(gameover);
 	}
 	
+	public void paintVictory(Vector <Color> colors)
+	{
+		gamePanel_.setVictoryColors(colors);
+	}
+	
+	public void stopPaintVictory()
+	{
+		gamePanel_.stopVictoryColors();
+	}
+	
 	public void displayMessage(String message)
 	{
 		if (null != currentPanel_)
 			currentPanel_.displayMessage(message);
+	}
+	
+	public void displayNetworkMessage(String message)
+	{
+		if (currentPanel_ == playersPanel_
+				|| currentPanel_ == serversPanel_)
+			currentPanel_.displayMessage(message);
+	}
+	
+	public void resetNetworkPanels()
+	{
+		if (null != playersPanel_)
+			playersPanel_.reset();
+		if (null != serversPanel_)
+			serversPanel_.reset();
+	}
+	
+	public void setConnectedClients(String[] clients)
+	{
+		if (null == playersPanel_)
+			return;
+		playersPanel_.setConnectedClients(clients);
+	}
+	
+	public void setPlayers(String[] players)
+	{
+		if (null == playersPanel_)
+			return;
+		playersPanel_.setPlayers(players);
+	}
+	
+	public void displayActualFPS(int fps)
+	{
+		if (currentPanel_ == gamePanel_)
+			gamePanel_.displayActualFPS(fps);
 	}
 
 	/* User keyboard interface ***********************************/

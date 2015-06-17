@@ -11,9 +11,10 @@ import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.snakes.ClassicSnake;
 import org.paulpell.miam.logic.draw.snakes.Snake;
-import org.paulpell.miam.logic.draw.walls.DefaultWall;
 import org.paulpell.miam.logic.draw.walls.Wall;
-import org.paulpell.miam.net.Client;
+import org.paulpell.miam.logic.levels.Level;
+import org.paulpell.miam.logic.levels.VictoryCondition;
+import org.paulpell.miam.logic.levels.Level.GameModesEnum;
 
 
 
@@ -23,68 +24,68 @@ public class Game
 	
 	private final Control control_;
 	
+	protected Level level_;
+	
 	
 	// here we store all the game objects
 	protected Vector<Snake> snakes_;
 	private int aliveSnakes_;
 	protected Vector<Item> items_;
-	protected Wall wall_;
-
-
-	public Game(Control gc, GameSettings settings)
-	{
-		this(gc, settings, new Vector<Item>(), new DefaultWall());
-	}
-
-	public Game(Control gc, GameSettings settings, Wall wall)
-	{
-		this(gc, settings, new Vector<Item>(), wall);
-	}
 	
-	public Game(Control gc, GameSettings settings, Vector<Item> items)
+	public Game(Control gc, Level level)
 	{
-		this(gc, settings, items, new DefaultWall());
-	}
-	
-	public Game(Control gc, GameSettings settings, Vector<Item> init_items, Wall init_wall)
-	{
-		// TODO control.configure(this); or configure(someGameConfiguration);
 		control_ = gc;
 		
+		setLevel(level);
+	}
+	
+	public Level getLevel()
+	{
+		return level_;
+	}
+	
+	public void setLevel(Level level)
+	{
+		level_ = level;
+		GameSettings settings = level_.getGameSettings();
 		
-		////////////////////
-		/////// add the stuff to draw
-		
-		items_ = init_items;
+		items_ = level_.getInitialItems();
 		
 		// snakes 
 		snakes_ = new Vector<Snake>();
-		Snake s = null;
-		aliveSnakes_ = settings.numberOfSnakes_;
-		for (int id=0; id<aliveSnakes_; ++id) {
-			int x = 30 + 30 * id, y = 200 - 40 * id;
-			if (settings.classicMode_)
-				s = new ClassicSnake(id, settings, x, y, 2);
+		aliveSnakes_ = level_.getNumberSnakes();
+		GameModesEnum mode = level_.getActualGameMode();
+		
+		for (int id=0; id<aliveSnakes_; ++id)
+		{
+			Pointd startPos = level_.getSnakeStartPosition(id);
+			int x = (int)startPos.x_;
+			int y = (int)startPos.y_;
+			int a = level_.getSnakeStartAngle(id);
+
+			Snake s = null;
+			if (mode == GameModesEnum.CLASSIC)
+				s = new ClassicSnake(id, settings, x, y, a);
+			else if (mode == GameModesEnum.MODERN)
+				s = new Snake(id, settings, x, y, a);
 			else
-				s = new Snake(id, settings, x, y, 0);
+				throw new IllegalArgumentException("Unacceptable game mode!");
+			
 			snakes_.add(s);
 		}
-		
-		wall_ = init_wall;
-		
-		
-		Globals.currentGame = this;
 	}
 	
 	
 	/* *************************************
 	 * Helper functions
 	 */
-	public int getNumberOfSnakes() {
+	public int getNumberOfSnakes()
+	{
 		return snakes_.size();
 	}
 	
-	public Vector<Snake> getSnakes() {
+	public Vector<Snake> getSnakes()
+	{
 		return snakes_;
 	}
 	
@@ -108,14 +109,15 @@ public class Game
 	
 	public Dimension getPreferredSize()
 	{
-		return new Dimension(wall_.getWidth(), wall_.getHeight());
+		Wall w = level_.getWall();
+		return new Dimension(w.getWidth(), w.getHeight());
 	}
 	
 	public Iterator<Drawable> getDrawablesIterator()
 	{
 		Vector<Drawable> drawables = new Vector<Drawable>();
 		
-		drawables.add(wall_);
+		drawables.add(level_.getWall());
 		drawables.addAll(snakes_);
 		drawables.addAll(items_);
 		
@@ -132,7 +134,7 @@ public class Game
 	/**************** The main function for a game, where snakes are moved */
 	
 	public void update()
-	{	
+	{
 		
 		// we check this here, so the final step can be drawn (paint is called one last time after previous update())
 		if (aliveSnakes_ == 0)
@@ -145,7 +147,9 @@ public class Game
 			s.advance();
 		}
 		
+		final Wall wall = level_.getWall();
 		Pointd collision;
+		Vector <Snake> victoriousSnakes = new Vector <Snake> ();
 		// check for collisions..
 		for (Enumeration<Snake> e = snakes_.elements(); e.hasMoreElements();)
 		{
@@ -155,18 +159,23 @@ public class Game
 			{
 				
 				// .. against the wall
-				collision = wall_.isSnakeColliding(s);
+				collision = wall.isSnakeColliding(s);
 				if (collision != null)
 					control_.snakeDied(s, collision);
 				
-				// .. and against the other snakes
-				for  (Enumeration<Snake> e2 = snakes_.elements(); e2.hasMoreElements(); )
+				else
 				{
-					Snake s2 = e2.nextElement();
-					collision = s2.isSnakeColliding(s);
-					if (collision != null)
-						control_.snakeDied(s, collision);
-					
+					// .. and against the other snakes
+					for  (Enumeration<Snake> e2 = snakes_.elements(); e2.hasMoreElements(); )
+					{
+						Snake s2 = e2.nextElement();
+						collision = s2.isSnakeColliding(s);
+						if (collision != null)
+						{
+							control_.snakeDied(s, collision);
+							break;
+						}
+					}
 				}
 				
 			}
@@ -181,6 +190,18 @@ public class Game
 						control_.snakeAcceptedItem(s, item);
 				}
 			}
+			
+			// check victory
+			Vector <VictoryCondition> vcs = level_.getVictoryConditions(); 
+			boolean snakeWon = vcs.size() > 0;
+			for (VictoryCondition vc : vcs)
+				snakeWon &= vc.checkVictory(s);
+			if (snakeWon)
+				victoriousSnakes.add(s);
 		}
+		
+		if (victoriousSnakes.size() > 0)
+			control_.snakesWon(victoriousSnakes);
+			
 	}
 }

@@ -5,7 +5,7 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
 
 public class EndTurnLeftAction
 	extends SnakeAction
-	implements EndAction
+	//implements EndAction
 {
 
 	public EndTurnLeftAction(int i) {
@@ -25,6 +25,6 @@ public class EndTurnLeftAction
 	@Override
 	public int getActionType()
 	{
-		return Constants.SNAKE_ACTION_TURN_LEFT;
+		return Constants.SNAKE_ACTION_TURN_LEFT | Constants.SNAKE_END_ACTION;
 	}
 }

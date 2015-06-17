@@ -8,6 +8,31 @@ import org.paulpell.miam.geom.Pointd;
 public class Arith
 {
 	
+	public static double mind(double d1, double d2)
+	{
+		return d1 < d2 ? d1 : d2;
+	}
+	
+	public static double maxd(double d1, double d2)
+	{
+		return d1 > d2 ? d2 : d1;
+	}
+	
+	public static int min(int i1, int i2)
+	{
+		return i1 < i2 ? i1 : i2;
+	}
+	
+	public static int max(int i1, int i2)
+	{
+		return i1 > i2 ? i1 : i2;
+	}
+	
+	public static double absd(double d)
+	{
+		return d >= 0 ? d : -d;
+	}
+	
 	public static boolean equalsd(double d1, double d2)
 	{
 		double d = d1 - d2;

@@ -4,11 +4,9 @@ package org.paulpell.miam.net;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.Socket;
 
 import org.paulpell.miam.geom.Pointd;
-import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 
 
@@ -98,18 +96,60 @@ public class NetMethods
 				| ((0xFF & b[3])); 
 	}
 	
-	protected static String point2str(Pointd p)
+
+	// to param is exclusive
+	public static byte[] getSubBytes(byte[] bs, int from, int to)
+	{
+		byte[] bsout = new byte[to - from];
+		for (int i=from; i < to; ++i)
+			bsout[i - from] = bs[i];
+		return bsout;
+	}
+	// from and to are 
+	// to param is exclusive
+	public static void setSubBytes(byte[] toread, byte[] toset, int from, int to)
+	{
+		//byte[] bsout = new byte[to - from];
+		for (int i=from; i < to; ++i)
+			toset[i] = toread[i - from];
+	}
+		
+		
+	protected static byte[] point2bytes(Pointd p)
 	{
 		String x = double2str(p.x_);
 		String y = double2str(p.y_);
-		String repr = "";
-		repr += (char)x.length() + x;
-		repr += (char)y.length() + y;
-		return repr;
+		//String repr = "";
+		//repr += (char)x.length() + x;
+		//repr += (char)y.length() + y;
+		//return repr;
+		//return null
+		byte[] bs = new byte[x.length() + y.length() + 2];
+		bs[0] = (byte)x.length();
+		setSubBytes(x.getBytes(), bs, 1, x.length() + 1);
+		bs[x.length() + 1] = (byte)y.length();
+		setSubBytes(y.getBytes(), bs, x.length() + 2, x.length() + y.length() + 2);
+		return bs;
 	}
 
 	// TODO: how to do str2point? Outside, we need the remaining string, if it is not the end of the float repr 
 
+	//protected static Pointd str2point(String s)
+	protected static Pointd bytes2point(byte[] s)
+	{
+		int xlen = 0xFF & s[0];
+		int ylen = 0xFF & s[xlen + 1];
+		String sx = new String(getSubBytes(s, 1, xlen + 1));
+		String sy = new String(getSubBytes(s, xlen + 2, xlen + 2 + ylen));
+		/*int xlen = 0xFF & s.charAt(0);
+		int ylen = 0xFF & s.charAt(xlen + 1);
+		String sx = s.substring(1, xlen + 1);
+		String sy = s.substring(xlen + 2, xlen + 2 + ylen);*/
+		double x = str2double(sx);
+		double y = str2double(sy);
+		return new Pointd(x, y);
+	}
+	
 	protected static String double2str(double d)
 	{
 		return ""+Double.doubleToRawLongBits(d);

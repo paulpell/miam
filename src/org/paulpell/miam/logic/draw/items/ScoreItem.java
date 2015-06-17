@@ -1,7 +1,8 @@
 package org.paulpell.miam.logic.draw.items;
 
-import java.awt.Graphics;
+
 import java.awt.Color;
+import java.awt.Graphics2D;
 
 import javax.swing.ImageIcon;
 
@@ -20,8 +21,11 @@ public class ScoreItem extends Item
 	private int score_;
 	private int growth_;
 	
-	public static final int s_width = 10;
-	public static final int s_height = 10;
+	private  static ImageIcon s_image = new ImageIcon("images/Score.png");
+	
+	public static final int s_width = s_image.getIconWidth();
+	public static final int s_height = s_image.getIconHeight();
+	
 	
 	public ScoreItem(double x0, double y0)
 	{
@@ -32,10 +36,9 @@ public class ScoreItem extends Item
 	}
 
 	
-	public void draw(Graphics g)
+	public void draw(Graphics2D g)
 	{
-		g.setColor(new Color(10, 180, 50));
-		shape_.draw(g);
+		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, null);
 	}
 
 	@Override
@@ -57,7 +60,7 @@ public class ScoreItem extends Item
 	@Override
 	public ImageIcon getImageIcon()
 	{
-		return null;
+		return s_image;
 	}
 	
 	public String getTextDescription()
@@ -83,6 +86,13 @@ public class ScoreItem extends Item
 	@Override
 	public void applyExtraParamsDescription(String params) {
 		// nothing
+	}
+
+
+	@Override
+	public boolean shouldDisplayInPanelInfo()
+	{
+		return false;
 	}
 	
 }

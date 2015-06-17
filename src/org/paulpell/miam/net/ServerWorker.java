@@ -44,7 +44,7 @@ public class ServerWorker extends Thread{
 				TimestampedMessage message = NetMethods.receiveMessage(socket_);
 				if (Globals.NETWORK_DEBUG)
 					Log.logMsg("ServerWorker (" + id_ + ")  receives msg = " + message);
-				server_.onReceive(message, this);
+				server_.onReceive(message);
 			}
 			catch (IOException e)
 			{

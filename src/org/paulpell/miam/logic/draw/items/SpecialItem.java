@@ -1,6 +1,5 @@
 package org.paulpell.miam.logic.draw.items;
 
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
@@ -9,7 +8,8 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
  * For instance, it could be some mariokart-style banana =) 
  */
 
-public abstract class SpecialItem extends Item {
+public abstract class SpecialItem extends Item
+{
 
 	//Game game; // we often need to place items or such things
 	

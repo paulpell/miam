@@ -1,5 +1,7 @@
 package org.paulpell.miam.logic.draw.items;
 
+import javax.swing.Icon;
+
 import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
@@ -13,27 +15,43 @@ import org.paulpell.miam.logic.Log;
 public class AllTheItems
 {
 
-	private static Item[] items =
+	public final static Item[] items =
 		{
 		new Banana(0,0),
 		new BananaSpecial(0,0, null),
 		new Lightning(0,0),
+		new ScoreItem(0, 0),
 		new ReversingItem(0,0),
 	};
 	
+	public final static int INDEX_BANANA = 0;
+	public final static int INDEX_BANANA_SPECIAL = 1;
+	public final static int INDEX_LIGHTNING = 2;
+	public final static int INDEX_SCORE = 3;
+	public final static int INDEX_REVERSO = 4;
+	public final static int INDEX_LAST = INDEX_REVERSO; // !!!!!! update this
+	
+	
 	// weight set for each item. At the beginning, uniform distribution
-	private static int[] weights;
+	private static int[] weights_;
 	private static double[] probs;
 	static
 	{
 		double uniform = 1. / items.length;
 		probs = new double[items.length];
-		weights = new int[items.length];
+		weights_ = new int[items.length];
 		for (int i=0; i<items.length; ++i)
 		{
-			weights[i] = 1;
+			weights_[i] = 1;
 			probs[i] = uniform;
 		}
+	}
+	
+	public static Icon getImageIcon(int i)
+	{
+		if (i < 0 || i > INDEX_LAST)
+			return null;
+		return items[i].getImageIcon();
 	}
 	
 	
@@ -73,21 +91,21 @@ public class AllTheItems
 	
 	public static void setProbabilities(int[] ws)
 	{
-		if (weights.length != items.length)
+		if (weights_.length != items.length)
 			throw new Error("Weights specified for probs are the wrong size");
-		weights = ws;
+		weights_ = ws;
 		double sum = 0;
-		for (int i=0; i<weights.length; ++i)
-			sum += weights[i];
-		for (int i=0; i<weights.length; ++i)
-			probs[i]= weights[i] / sum;
+		for (int i=0; i<weights_.length; ++i)
+			sum += weights_[i];
+		for (int i=0; i<weights_.length; ++i)
+			probs[i]= weights_[i] / sum;
 	}
 	
 	public static int getWeightIndex(Item item)
 	{
 		for (int i=0; i<items.length; ++i)
 			if (item.getClass() == items[i].getClass())
-				return weights[i];
+				return weights_[i];
 
 		return 0;
 	}

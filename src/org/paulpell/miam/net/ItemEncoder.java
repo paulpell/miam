@@ -27,9 +27,9 @@ public class ItemEncoder
 		REVERSE(new ReversingItem(0,0)),
 		SCORE(new ScoreItem(0,0));
 		
-		private static char nextEnc = 0;
+		private static byte nextEnc = 0;
 		
-		private char enc_;
+		private byte enc_;
 		private Item instance_;
 		
 		private ItemEncodingEnum(Item instance)
@@ -37,12 +37,12 @@ public class ItemEncoder
 			enc_ = getNextEnc();
 			instance_ = instance;
 		}
-		private char getNextEnc()
+		private byte getNextEnc()
 		{
 			return nextEnc++;
 		}
 		
-		public char getEncoding() { return enc_; }
+		public byte getEncoding() { return enc_; }
 		
 		public Item getInstance()
 		{
@@ -52,7 +52,7 @@ public class ItemEncoder
 	};
 	
 	static Map<Class<?>, ItemEncodingEnum> class2encoded_ = new HashMap<Class<?>, ItemEncodingEnum>();
-	static Map<Character, ItemEncodingEnum> encoded2class_ = new HashMap<Character, ItemEncodingEnum>();
+	static Map<Byte, ItemEncodingEnum> encoded2class_ = new HashMap<Byte, ItemEncodingEnum>();
 	
 	static
 	{
@@ -70,50 +70,50 @@ public class ItemEncoder
 	}
 	
 
-	public static String encodeItem(Item item)
-	{
-		String repr = "";
-		Pointd position = item.getPointd();
-		
-		char classStr = class2encoded_.get(item.getClass()).getEncoding();
-		repr += classStr;
-		
-		// position: 1 point
-		repr += NetMethods.point2str(position);
-		
-		String extra = item.getExtraParamsDescription();
-		assert extra.length() <= (0xFFFF & Character.MAX_VALUE);
-		repr += (char)extra.length() + extra;
-		
+	public static byte[] encodeItem(Item item)
+	{	
 		if (item instanceof Banana && Globals.NETWORK_DEBUG)
 			Log.logMsg("Banana to network: " + item);
+	
+		Pointd position = item.getPosition();
 		
+		byte classByte = class2encoded_.get(item.getClass()).getEncoding();
+		
+		// position_: 1 point
+		byte[] pos = NetMethods.point2bytes(position);
+		assert pos.length <= (0xFFFF & Byte.MAX_VALUE);
+		
+		byte[] extra = item.getExtraParamsDescription().getBytes();
+		assert extra.length <= (0xFFFF & Byte.MAX_VALUE);
+		
+		byte[] repr = new byte[3 + pos.length + extra.length];
+		
+		repr[0] = classByte;
+		repr[1] = (byte)pos.length;
+		NetMethods.setSubBytes(pos, repr, 2, pos.length + 2);
+		repr[pos.length + 2] = (byte)extra.length;
+		NetMethods.setSubBytes(extra, repr, pos.length + 3, extra.length + pos.length + 3);
 		
 		return repr;
 	}
 	
-	public static Item decodeItem(String repr, Game game)
+	//public static Item decodeItem(String repr, Game game)
+	public static Item decodeItem(byte[] repr, Game game)
 	{
-		Item instance = encoded2class_.get(repr.charAt(0)).getInstance();
+		//Item instance = encoded2class_.get(repr.charAt(0)).getInstance();
+		Item instance = encoded2class_.get(repr[0]).getInstance();
 		Class<?> theClass = instance.getClass();
 		
+		int poslen = 0xFF & repr[1];
+		byte[] posbs = NetMethods.getSubBytes(repr, 2, 2 + poslen);
+		Pointd pos = NetMethods.bytes2point(posbs);
 		
-		// TODO: generic point reading
-		char xlen = repr.charAt(1);
-		double x = NetMethods.str2double(repr.substring(2, 2 + xlen));
-		
-		repr = repr.substring((2 + xlen));
-		char ylen = repr.charAt(0);
-		double y = NetMethods.str2double(repr.substring(1, 1 + ylen));
-		
-		repr = repr.substring(1 + ylen);
-		char extralen = repr.charAt(0);
-		String extraParams = repr.substring(1, 1 + extralen);
-		
-		assert Item.class.isAssignableFrom(theClass) : "Decoded bad item";
+		int extralen = 0xFF & repr[2 + poslen];
+		byte[] extrabs = NetMethods.getSubBytes(repr, 3 + poslen, 3 + poslen + extralen);
+		String extraParams = new String(extrabs);
 		
 		Class<?>[] paramsTypes = new Class[]{double.class, double.class, Game.class};
-		Object[] params = new Object[]{x, y, game};
+		Object[] params = new Object[]{pos.x_, pos.y_, game};
 		try
 		{
 			Item i = (Item)theClass.getMethod("newItem", paramsTypes).invoke(instance, params);

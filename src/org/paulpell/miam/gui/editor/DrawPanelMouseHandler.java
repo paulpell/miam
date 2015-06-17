@@ -7,23 +7,19 @@ import java.awt.event.MouseMotionListener;
 
 import org.paulpell.miam.geom.Pointd;
 
-class DrawPanelMouseHandler implements MouseListener, MouseMotionListener {
+class DrawPanelMouseHandler implements MouseListener, MouseMotionListener
+{
 	
-	LevelEditor levelEditor;
-	boolean reportMouseMotion = false; // to report the mouse motion when one point is fixed already
+	LevelEditor levelEditor_;
 	
 	public DrawPanelMouseHandler(LevelEditor le) {
-		levelEditor = le;
-	}
-	
-	public void reportMouseMotion(boolean b) {
-		reportMouseMotion = b;
+		levelEditor_ = le;
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
 		Point p = arg0.getPoint();
-		levelEditor.nextPoint(new Pointd(p.x, p.y));
+		levelEditor_.clickedPoint(new Pointd(p.x, p.y));
 	}
 
 	@Override
@@ -31,7 +27,7 @@ class DrawPanelMouseHandler implements MouseListener, MouseMotionListener {
 
 	@Override
 	public void mouseExited(MouseEvent arg0) {
-		levelEditor.cancelCurrent();
+		levelEditor_.cancelCurrent();
 	}
 
 	@Override
@@ -44,10 +40,9 @@ class DrawPanelMouseHandler implements MouseListener, MouseMotionListener {
 	public void mouseDragged(MouseEvent arg0) {}
 
 	@Override
-	public void mouseMoved(MouseEvent arg0) {
-		if (reportMouseMotion) {
-			Point p = arg0.getPoint();
-			levelEditor.mouseMoved(new Pointd(p.x, p.y));
-		}
+	public void mouseMoved(MouseEvent arg0)
+	{
+		Point p = arg0.getPoint();
+		levelEditor_.mouseMoved(new Pointd(p.x, p.y));
 	}
 }

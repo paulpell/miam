@@ -3,7 +3,7 @@ package org.paulpell.miam.logic.draw.items;
 import javax.swing.ImageIcon;
 
 import org.paulpell.miam.geom.GeometricObject;
-import org.paulpell.miam.geom.Line;
+import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.Drawable;
@@ -24,7 +24,7 @@ public abstract class Item extends Drawable
 	
 	protected GeometricObject shape_;
 	protected Pointd position_;
-	protected int duration_; // for lasting effects
+	protected int effectDuration_; // for lasting effects
 	
 	
 	public GeometricObject getShape()
@@ -34,34 +34,35 @@ public abstract class Item extends Drawable
 	
 	// needed to display the items in the info panel
 	public abstract ImageIcon getImageIcon();
+	public abstract boolean shouldDisplayInPanelInfo();
 	
 	public Pointd isSnakeColliding(Snake s)
 	{
 		if (s == null || shape_ == null)
 			return null;
 		
-		Line l = new Line(s.getHead(), s.getPreviousHead());
+		Segment l = s.getIntersectionTestLine();
 		return shape_.intersect(l);
 	}
 	
 	
-	public boolean isPointInside(Pointd p)
+	/*public boolean isPointInside(Pointd p)
 	{
 		if (p == null || shape_ == null)
 			return false;
 		
 		return shape_.isPointInside(p);
-	}
+	}*/
 	
 	
-	public Pointd getPointd()
+	public Pointd getPosition()
 	{
 		return position_;
 	}
 	
-	public int getDuration()
+	public int getEffectDuration()
 	{
-		return duration_;
+		return effectDuration_;
 	}
 	
 	

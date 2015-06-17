@@ -1,72 +1,60 @@
 package org.paulpell.miam.geom;
 
-import java.awt.Graphics;
+
+import java.awt.Graphics2D;
 
 import org.paulpell.miam.logic.Arith;
 
-
 public class Line extends GeometricObject
 {
-	private Pointd p1_;
-	private Pointd p2_;
 	
-	public Line(Pointd p1, Pointd p2)
-	{
-		this.p1_ = p1;
-		this.p2_ = p2;
-	}
+	final Pointd p1_;
+	final Pointd p2_;
+	final Vector2D v_;
 	
-	public Pointd getP1() {
-		return p1_;
-	}
-	public Pointd getP2() {
-		return p2_;
-	}
+	final boolean isHorizontal_;
+	final boolean isVertical_;
 	
-	public Vector2D getNormal()
-	{
-		double dx = p1_.x_ - p2_.x_;
-		double dy = p1_.y_ - p2_.y_;
-		return new Vector2D(dy, -dx);
-	}
-	
-	public Vector2D getTangent()
-	{
-		double dx = p1_.x_ - p2_.x_;
-		double dy = p1_.y_ - p2_.y_;
-		return new Vector2D(dx, dy);
-	}
-	
-	public boolean isPointInside(Pointd p)
-	{
-		if (p.equals(p1_) || p.equals(p2_))
-			return true;
+	// for the line representation y = ax + b. We use it only
+	// if not vertical or horizontal, so it's good enough =)
+	private final double a_;
+	private final double b_;
 
-		double dx1 = p1_.x_ - p.x_;
-		double dx2 = p1_.x_ - p2_.x_;
-		double t;
-		if (Arith.equalsd(0, dx2))
+	public Line(Pointd p, Vector2D v)
+	{
+		p1_ = p;
+		v_ = v;
+		p2_ = v_.add(p1_);
+		isHorizontal_ = Arith.equalsd(p1_.y_, p2_.y_);
+		isVertical_ = Arith.equalsd(p1_.x_, p2_.x_);
+		
+		if (isHorizontal_ || isVertical_)
 		{
-			double dy1 = p1_.y_ - p.y_;
-			double dy2 = p1_.y_ - p2_.y_;
-			
-			if (Arith.equalsd(0, dy2))
-				throw new UnsupportedOperationException("Line: p1_ equals p2_!!");
-
-			t = dy1 / dy2;
-			if (Arith.equalsd(getPointOn(t).x_, p.x_))
-				return true;
-
+			a_ = b_ = 0; // don't care
 		}
 		else
 		{
-			t = dx1 / dx2;
-			if (Arith.equalsd(getPointOn(t).y_, p.y_))
-				return true;
+			// a = dy/dx, use p1 to find b
+			a_ = (p1_.y_ - p2_.y_) / (p1_.x_ - p2_.x_);
+			b_ = p1_.y_ - a_ * p1_.x_;
 		}
-		return false;
 	}
 	
+
+	public Line(Pointd p1, Pointd p2)
+	{
+		this(p1, new Vector2D(p1, p2));
+	}
+	
+	public Pointd getP1()
+	{
+		return p1_;
+	}
+	public Pointd getP2()
+	{
+		return p2_;
+	}
+
 	// linear, t=0 returns p1_ and t=1, p2_
 	public Pointd getPointOn(double t)
 	{
@@ -75,92 +63,59 @@ public class Line extends GeometricObject
 		return new Pointd(x,y);
 	}
 	
-	
+	@Override
+	public Pointd getPointd()
+	{
+		return p1_;
+	}
+
+	@Override
+	public boolean isPointInside(Pointd p)
+	{
+		return isPointColinear(p);
+	}
+
+	@Override
 	public Pointd intersect(Line other)
 	{
-		Pointd p3 = other.getP1();
-		Pointd p4 = other.getP2();
-		
-		// some simple tests to avoid calculations
-		if (p1_.x_ < p3.x_ && p1_.x_ < p4.x_ && p2_.x_ < p3.x_ && p2_.x_ < p4.x_) return null;
-		if (p1_.x_ > p3.x_ && p1_.x_ > p4.x_ && p2_.x_ > p3.x_ && p2_.x_ > p4.x_) return null;
-		if (p1_.y_ < p3.y_ && p1_.y_ < p4.y_ && p2_.y_ < p3.y_ && p2_.y_ < p4.y_) return null;
-		if (p1_.y_ > p3.y_ && p1_.y_ > p4.y_ && p2_.y_ > p3.y_ && p2_.y_ > p4.y_) return null;
-		
-		double dx = (p2_.x_ - p1_.x_);
-		double dy = (p2_.y_ - p1_.y_);
-		if (Arith.equalsd(0, dx))
-			return intersectVertical(other);
-
-		if (Arith.equalsd(0, dy))
-			return intersectHorizontal(other);
-
-		double d1 = (p3.x_ - p1_.x_) / dx - (p3.y_ - p1_.y_) / dy;
-		double d2 = (p4.y_ - p3.y_)/dy - (p4.x_ - p3.x_)/dx;
-		double t2 = d1 / d2;
-		if (t2 < 0 || t2 > 1)
-			return null;
-
-		return other.getPointOn(t2);
-	}
-	
-	private Pointd intersectVertical(Line other)
-	{
-		Pointd p3 = other.getP1(), p4 = other.getP2();
-		double dx = p4.x_ - p3.x_;
-		if (Arith.equalsd(0, dx)) // other also vertical
+		if (other.isHorizontal_ && isHorizontal_)
 		{
-			if (Arith.equalsd(p1_.x_, p3.x_)) { // must be on same x_ to intersect
-				if ((p3.y_ <= p1_.y_ && p3.y_ >= p2_.y_) || (p3.y_ >= p1_.y_ && p3.y_ <= p2_.y_))
-					return p3;
-				
-				if ((p4.y_ <= p1_.y_ && p4.y_ >= p2_.y_) || (p4.y_ >= p1_.y_ && p4.y_ <= p2_.y_))
-					return p4;
-
-				if ((p3.y_ <= p1_.y_ && p4.y_ >= p2_.y_) || (p3.y_ >= p1_.y_ && p4.y_ <= p2_.y_))
-					return p1_;
-
-			}
+			if (Arith.equalsd(p1_.y_, other.p1_.y_))
+				return p1_;
 			return null;
 		}
-		double t = (p4.x_ - p1_.x_) / dx;
-		Pointd p = other.getPointOn(t);
-		if (t >= 0 && t <= 1 &&
-				((p.y_ <= p1_.y_ && p.y_ >= p2_.y_)
-						|| (p.y_ >= p1_.y_ && p.y_ <= p2_.y_)))
-			return p;
 		
-		return null;
-		
-	}
-	
-	private Pointd intersectHorizontal(Line other)
-	{
-		Pointd p3 = other.getP1(), p4 = other.getP2();
-		double dy = p4.y_ - p3.y_;
-		if (Arith.equalsd(0, dy)) // other also horizontal
+		if (other.isVertical_ && isVertical_)
 		{
-			if (Arith.equalsd(p1_.y_, p3.y_))
-			{
-				if ((p3.x_ <= p1_.x_ && p3.x_ >= p2_.x_) || (p3.x_ >= p1_.x_ && p3.x_ <= p2_.x_))
-					return p3;
-
-				if ((p4.x_ <= p1_.x_ && p4.x_ >= p2_.x_) || (p4.x_ >= p1_.x_ && p4.x_ <= p2_.x_))
-					return p4;
-
-				if ((p4.x_ <= p1_.x_ && p3.x_ >= p2_.x_) || (p4.x_ >= p1_.x_ && p3.x_ <= p2_.x_))
-					return p1_;
-			}
-			return null;	
+			if (Arith.equalsd(p1_.x_, other.p1_.x_))
+				return p1_;
+			return null;
 		}
-		double t = (p4.y_ - p1_.y_) / dy;
-		Pointd p = other.getPointOn(t);
-		if (t >= 0 && t <= 1 &&
-				((p.x_ <= p1_.x_ && p.x_ >= p2_.x_)
-						|| (p.x_ >= p1_.x_ && p.x_ <= p2_.x_)))
-			return p;
+		
+		if (other.isVertical_ && isHorizontal_)
+			return new Pointd(other.p1_.x_, p1_.y_);
+		
+		if (other.isHorizontal_ && isVertical_)
+			return new Pointd(p1_.x_, other.p1_.y_);
+		
+		// parallel lines
+		if (Arith.equalsd(other.a_, a_))
+		{
+			if (Arith.equalsd(other.b_, b_))
+				return p1_;
+			return null;
+		}
+		
+		// otherwise...
+		double x = (b_ - other.b_) / (other.a_ - a_);
+		double y = a_ * x + b_;
+		return new Pointd(x, y);
+	}
 
-		return null;
+	@Override
+	public Pointd intersect(Segment other)
+	{
+		return other.intersect(this);
 	}
 
 	@Override
@@ -176,15 +131,65 @@ public class Line extends GeometricObject
 	}
 
 	@Override
-	public Pointd getPointd()
+	public void draw(Graphics2D g)
 	{
-		return p1_;
-	}
-
-	@Override
-	public void draw(Graphics g)
-	{
-		g.drawLine((int)p1_.x_, (int)p1_.y_, (int)p2_.x_, (int)p2_.y_);
+		/*java.awt.Rectangle clipRect = g.getClipBounds();
+		if (isHorizontal_)
+		{
+			int y = (int)p1_.y_;
+			g.drawLine(0, y, clipRect.width, y);
+		}
+		else if (isVertical_)
+		{
+			int y = (int)p1_.y_;
+			g.drawLine(y, 0, y, clipRect.width);
+		}
+		else
+		{
+			
+		}*/
+		throw new UnsupportedOperationException("Cannot draw Line!");
 	}
 	
+	public boolean isPointColinear(Pointd p)
+	{
+		Pointd p2 = v_.add(p1_);
+		if (p.equals(p1_) || p.equals(p2))
+			return true;
+		
+		double d1 = (p.x_ - p1_.x_) / (p2.x_ - p1_.x_);
+		double d2 = (p.y_ - p1_.y_) / (p2.y_ - p1_.y_);
+		return Arith.equalsd(d1, d2);
+	}
+
+	
+	public Vector2D getNormal()
+	{
+		return v_.normal();
+	}
+	
+	public Vector2D getTangent()
+	{
+		return v_.clone();
+	}
+
+
+	@Override
+	public double minDistanceToPoint(Pointd p)
+	{
+		if (isPointColinear(p))
+			return 0;
+		
+		Line other = new Line(p, getNormal());
+		Pointd i = intersect(other);
+		return Arith.dist(p, i);
+	}
+
+
+	@Override
+	public GeometricObject translate(Vector2D dv)
+	{
+		return new Line(dv.add(p1_), v_);
+	}
+
 }

@@ -3,7 +3,6 @@ package org.paulpell.miam.net;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.paulpell.miam.logic.Control;
@@ -16,7 +15,8 @@ import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
  * The Server class maintains a list of clients to which it is connected.
  * There is one master client, and zero or more slave clients.
  * The server has to forward the slave clients' messages to the master client and vice-versa.
- * The master client is the first to connect and has id 0.
+ * The master client has id 0 and is a special case: the messages are not sent over sockets,
+ * but by fuction calls.
  * 
  * @author paul
  *
@@ -41,9 +41,11 @@ public class Server extends Thread
 	private boolean listening_ = true;
 	
 	
-	private int maxNumSlaveClients_ = 1; // how many clients can be handled
-	private LinkedList<ServerWorker> slaveClients_ = new LinkedList<ServerWorker>();
+	private int maxNumSlaveClients_; // how many clients can be handled
+	private LinkedList<ServerWorker> serverWorkers_;
 	int nextId_ = 1; // master client has id 0
+	
+	boolean ending_ = false;
 	
 	public Server(Control control, Client masterClient)
 			throws IOException
@@ -52,7 +54,11 @@ public class Server extends Thread
 		control_ = control;
 		masterClient_ = masterClient;
 		
+		serverWorkers_ = new LinkedList<ServerWorker>();
+		
 		serverSocket_ = new ServerSocket(port_);
+		
+		maxNumSlaveClients_ = Globals.ONLINE_DEFAULT_CLIENT_MAX_NUMBER;
 		
 		start();
 	}
@@ -73,10 +79,9 @@ public class Server extends Thread
 		try
 		{
 			Socket newSocket = serverSocket_.accept();
-			if (!listening_)
-				return;
 			
-			if (slaveClients_.size() >= maxNumSlaveClients_)
+			if ( ! listening_
+					|| serverWorkers_.size() >= maxNumSlaveClients_)
 			{
 				reject(new ServerWorker(newSocket, this));
 				newSocket.close(); // mouhahaha
@@ -85,12 +90,17 @@ public class Server extends Thread
 			{
 				ServerWorker sw = new ServerWorker(newSocket, this); 
 				giveNextId(sw);
-				slaveClients_.add(sw);
-				control_.displayServerMessage("New client accepted (id="+sw.getClientId()+")");
+				serverWorkers_.add(sw);
+				
+				String name = newSocket.getInetAddress().getCanonicalHostName();
+				control_.clientJoined(new ClientInfo(sw.getClientId(), name));
 			}
 		} catch (IOException e)
 		{
-			Log.logErr("Server accept failed: "+e.getLocalizedMessage());
+			if (!ending_)
+			{
+				Log.logErr("Server accept failed: "+e.getLocalizedMessage());
+			}
 		}
 	}
 	
@@ -100,7 +110,7 @@ public class Server extends Thread
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Server removes ServerWorker(" + serverWorker.getClientId() + ")");
 		
-		slaveClients_.remove(serverWorker);
+		serverWorkers_.remove(serverWorker);
 	}
 	
 	public void end()
@@ -108,8 +118,9 @@ public class Server extends Thread
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Server shutting down");
 		
+		ending_ = true;
 		listening_ = false;
-		for (ServerWorker sw: slaveClients_)
+		for (ServerWorker sw: serverWorkers_)
 		{
 			if (sw != null)
 			{
@@ -125,7 +136,7 @@ public class Server extends Thread
 			}
 		}
 		
-		slaveClients_.clear();
+		serverWorkers_.clear();
 		
 		// then close server socket
 		try
@@ -134,30 +145,27 @@ public class Server extends Thread
 		}
 		catch (IOException e)
 		{
-			// should not happen here, it's caught in run()
-			assert false : "Exception occuring in Server.end()";
 		}
 	}
 	
 	public int getSlaveNumber()
 	{
-		return slaveClients_.size();
+		return serverWorkers_.size();
 	}
 	
-	public void setPlayerMaxNumber(int n)
+	public void setMaxClientNumber(int n)
 	{
 		this.maxNumSlaveClients_ = n - 1;
-		for (int i=n; i<slaveClients_.size(); ++i)
+		while (serverWorkers_.size() > maxNumSlaveClients_)
 		{
-			reject(slaveClients_.get(i));
+			ServerWorker sw = serverWorkers_.getLast();
+			reject(sw);
+			sw.end();
 		}
 	}
 	
-	protected void onReceive(TimestampedMessage message, ServerWorker ch)
+	protected void onReceive(TimestampedMessage message)
 	{
-		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("Server receives from (" + ch.getClientId() + "): " + message);
-
 		masterClient_.handleMessage(message);
 	}
 	
@@ -166,7 +174,7 @@ public class Server extends Thread
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Server.broadcastToSlaves: " + message);
 		
-		for (ServerWorker sw : slaveClients_)
+		for (ServerWorker sw : serverWorkers_)
 			sw.forwardMessage(message);
 	}
 	
@@ -175,9 +183,7 @@ public class Server extends Thread
 		try
 		{
 			if (sw != null)
-			{
 				sendServerCommand(sw, new TimestampedMessage(getTimestamp(), -1, MsgTypes.CLIENT_REJECTED, null));
-			}
 		}
 		catch (IOException e)
 		{
@@ -202,5 +208,10 @@ public class Server extends Thread
 	{
 		return 0;
 	}
+	
+	/*public String getCanonicalName()
+	{
+		return serverSocket_.getInetAddress().getCanonicalHostName();
+	}*/
 
 }

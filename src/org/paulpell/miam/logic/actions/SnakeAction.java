@@ -1,5 +1,6 @@
 package org.paulpell.miam.logic.actions;
 
+import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
@@ -22,12 +23,22 @@ public abstract class SnakeAction
 	
 	public abstract int getActionType();
 	
+	public int getSimpleActionType()
+	{
+		return getActionType() & ( ~ Constants.SNAKE_END_ACTION );
+	}
+	
+	public boolean isStartAction()
+	{
+		return 0 == (getActionType() & Constants.SNAKE_END_ACTION);
+	}
+	
 	@Override
 	public boolean equals(Object o)
 	{
 		return 
 				o instanceof SnakeAction
-				&& StartAction.class.isAssignableFrom(this.getClass()) == StartAction.class.isAssignableFrom(o.getClass())
+			//	&& StartAction.class.isAssignableFrom(this.getClass()) == StartAction.class.isAssignableFrom(o.getClass())
 				&& snakeIndex_ == ((SnakeAction)o).snakeIndex_
 				&& getActionType() == ((SnakeAction)o).getActionType();
 	}
@@ -37,7 +48,7 @@ public abstract class SnakeAction
 	{
 		return 100 * snakeIndex_
 				+ 10 * getActionType()
-				+ (StartAction.class.isAssignableFrom(this.getClass()) ? 1 : 0); 
+				;//+ (StartAction.class.isAssignableFrom(this.getClass()) ? 1 : 0); 
 	}
 	
 }

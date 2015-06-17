@@ -1,16 +1,17 @@
 package org.paulpell.miam.logic.draw.snakes;
 
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.awt.Color;
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Polygon;
 
 import javax.swing.ImageIcon;
 
 import org.paulpell.miam.geom.GeometricObject;
-import org.paulpell.miam.geom.Line;
+import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Vector2D;
 import org.paulpell.miam.logic.Arith;
@@ -40,13 +41,16 @@ public class Snake extends Drawable
 	/* Static constants/functions ***************************/
 	
 	
-	// some default colors
-	final private static Color[] colors = { new Color(160, 20, 50),
-									new Color(50, 140, 20),
-									new Color(30, 30, 190),
-									new Color(10, 150, 60),
-									new Color(130, 100, 10)};
-	final private static Color s_deadColor = new Color(200,200,0);
+	// some default s_snakesColors
+	final public static Color[] s_snakesColors =
+		{
+			new Color(160, 20, 50),
+			new Color(50, 140, 20),
+			new Color(30, 30, 190),
+			new Color(185, 75, 210),
+			new Color(130, 100, 10)
+		};
+	final private static Color s_deadColor = new Color(200,200,9);
 	
 	
 	private int x0_, y0_;
@@ -63,7 +67,7 @@ public class Snake extends Drawable
 	// physics/geometry
 	int speed_;
 	int angleDiff_;
-	boolean speedup = false;
+	boolean hasSpeedup_ = false;
 	int direction_; // either 0-3 (in classic mode) or an angle based on 360 degrees (std trigo)
 	double dx_, dy_; // cached values for how to advance, use computeDs() to update
 	double length_ = 1;
@@ -128,7 +132,7 @@ public class Snake extends Drawable
 	{
 		speed_ = settings_.snakeSpeed_;
 		angleDiff_ = speed_ * settings_.snakeAngleSpeedFactor_;
-		color_ = colors[id_];
+		color_ = s_snakesColors[id_];
 		computeDs();
 		previousHead_ = new Pointd(x0_, y0_); 
 		points_.add(previousHead_);
@@ -174,14 +178,14 @@ public class Snake extends Drawable
 	}
 	public void setSpeedup(boolean b)
 	{
-		if (b && !speedup)
+		if (b && !hasSpeedup_)
 		{
-			speedup = true;
+			hasSpeedup_ = true;
 			speed_ += settings_.snakeExtraSpeedup_;
 		}
-		else if (!b && speedup)
+		else if (!b && hasSpeedup_)
 		{
-			speedup = false;
+			hasSpeedup_ = false;
 			speed_ -= settings_.snakeExtraSpeedup_;
 		}
 		computeDs();
@@ -223,7 +227,7 @@ public class Snake extends Drawable
 			items_.add(it);
 		}
 	}
-	public boolean itemsChanged() { // used in InfoPanel.update()
+	public boolean itemsChanged() { // used in SnakeInfoPanel.update()
 		return itemsChanged_;
 	}
 	public boolean specialItemChanged() {
@@ -586,7 +590,7 @@ public class Snake extends Drawable
 	 * Draws the snake on the given Graphics.
 	 * @param g an instance of Graphics where one wants to draw the snake
 	 */
-	public void draw(Graphics g)
+	public void draw(Graphics2D g)
 	{
 		if (isAlive_)
 			g.setColor(color_);
@@ -614,12 +618,18 @@ public class Snake extends Drawable
 	 */
 	public ImageIcon[] getItemsImageIcons()
 	{
-		ImageIcon[] ims = new ImageIcon[items_.size()];
+		ArrayList <ImageIcon> ims = new ArrayList <ImageIcon> ();
 		Iterator<Item> it = items_.iterator();
-		for (int i = 0; i < items_.size(); ++i)
-			ims[i] = it.next().getImageIcon();
+		for (; it.hasNext(); )
+		{
+			Item i = it.next();
+			if (i.shouldDisplayInPanelInfo())
+				ims.add(i.getImageIcon());
+		}
 		
-		return ims;
+		ImageIcon[] ret = new ImageIcon[ims.size()];
+		ret = ims.toArray(ret);
+		return ret;
 	}
 	/**
 	 * Returns the ImageIcon of the special item the snake holds (can be null).
@@ -648,7 +658,7 @@ public class Snake extends Drawable
 		do
 		{
 			p2 = it.next();
-			if (new Line(p1, p2).isPointInside(p))
+			if (new Segment(p1, p2).isPointInside(p))
 				return true;
 
 			p1 = p2;
@@ -675,7 +685,7 @@ public class Snake extends Drawable
 		do
 		{
 			p2 = it_pts.next();
-			if (null != new Line(p1, p2).intersectGeneric(shape))
+			if (null != new Segment(p1, p2).intersectGeneric(shape))
 				return true;
 
 			p1 = p2;
@@ -692,7 +702,7 @@ public class Snake extends Drawable
 	{
 		Pointd p1other = other.getHead();
 		Pointd p2other = other.getPreviousHead();
-		Line lineOther = new Line(p1other, p2other);
+		Segment lineOther = new Segment(p1other, p2other);
 		
 		Iterator<Pointd> it = points_.iterator();
 		
@@ -709,7 +719,7 @@ public class Snake extends Drawable
 		{
 			p2 = it.next(); // it's sure next() exists at the first step
 			
-			Line l = new Line(p1, p2);
+			Segment l = new Segment(p1, p2);
 			Pointd intersection = l.intersect(lineOther);
 			if (intersection != null)
 				return intersection;
@@ -733,9 +743,19 @@ public class Snake extends Drawable
 	 * Return the point at which the head was located at the previous step
 	 * @return the point at which the head was located at the previous step
 	 */
-	public Pointd getPreviousHead()
+	protected Pointd getPreviousHead()
 	{
 		return previousHead_;
+	}
+	
+	/**
+	 * Return a line to test intersection, with the head point
+	 * and the previous head position.
+	 * @return a line to test intersection
+	 */
+	public Segment getIntersectionTestLine()
+	{
+		return new Segment(getHead(), getPreviousHead());
 	}
 
 	/**
@@ -756,14 +776,14 @@ public class Snake extends Drawable
 		return id_ + "," + x0_ + "," + y0_ + "," + direction_;
 	}
 
-	/**
+	/* *
 	 * Returns the head of this snake.
 	 * @return the head of this snake
 	 */
-	@Override
+	/*@Override
 	public Pointd getPointd()
 	{
 		return getHead();
-	}
+	}*/
 
 }

@@ -2,38 +2,43 @@ package org.paulpell.miam.gui;
 
 import java.awt.KeyEventDispatcher;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 import javax.swing.KeyStroke;
 
+import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Log;
 
-public class MainKeyDispatcher implements KeyEventDispatcher {
+public class MainKeyDispatcher implements KeyEventDispatcher
+{
 
-	MainFrame mainFrame_;
+	Control control_;
 	
-	public MainKeyDispatcher(MainFrame f)
+	
+	public MainKeyDispatcher(Control control)
 	{
-		mainFrame_ = f;
+		control_ = control;
 	}
 	
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e)
 	{
-		if (mainFrame_.shouldGetKeyEvents())
+		KeyListener kl = control_.whoShouldReceiveKeyEvents();
+		if (null != kl)
 		{
 			KeyStroke ks = KeyStroke.getKeyStrokeForEvent(e);
 			switch (ks.getKeyEventType())
 			{
 			case KeyEvent.KEY_PRESSED:
-				mainFrame_.keyPressed(e);
+				kl.keyPressed(e);
 				break;
 				
 			case KeyEvent.KEY_RELEASED:
-				mainFrame_.keyReleased(e);
+				kl.keyReleased(e);
 				break;
 				
 			case KeyEvent.KEY_TYPED:
-				mainFrame_.keyTyped(e);
+				kl.keyTyped(e);
 				break;
 			
 			default:

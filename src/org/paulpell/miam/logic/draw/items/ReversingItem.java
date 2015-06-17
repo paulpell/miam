@@ -1,7 +1,7 @@
 package org.paulpell.miam.logic.draw.items;
 
 
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 
 import javax.swing.ImageIcon;
 
@@ -32,7 +32,7 @@ public class ReversingItem extends Item
 	}
 
 
-	public void draw(Graphics g)
+	public void draw(Graphics2D g)
 	{
 		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, (int)s_width, (int)s_height, null);
 	}
@@ -83,5 +83,12 @@ public class ReversingItem extends Item
 	@Override
 	public void applyExtraParamsDescription(String params) {
 		// nothing to do
+	}
+
+
+	@Override
+	public boolean shouldDisplayInPanelInfo()
+	{
+		return false;
 	}
 }

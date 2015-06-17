@@ -5,7 +5,7 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
 
 public class StartTurnLeftAction
 	extends SnakeAction
-	implements StartAction
+//	implements StartAction
 {
 
 	public StartTurnLeftAction(int i)

@@ -5,7 +5,7 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
 
 public class EndSpeedupAction
 		extends SnakeAction
-		implements EndAction
+		//implements EndAction
 {
 
 	public EndSpeedupAction(int i) {
@@ -26,7 +26,7 @@ public class EndSpeedupAction
 	@Override
 	public int getActionType()
 	{
-		return Constants.SNAKE_ACTION_SPEEDUP;
+		return Constants.SNAKE_ACTION_SPEEDUP | Constants.SNAKE_END_ACTION;
 	}
 
 }

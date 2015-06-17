@@ -11,7 +11,8 @@ public class Log
 	private static PrintWriter printWriter_;
 	static
 	{
-		String logFilePath = "/tmp/log.miam" + System.currentTimeMillis();
+		String tmpdir = System.getProperty("java.io.tmpdir");
+		String logFilePath = tmpdir + File.separator + "log.miam" + System.currentTimeMillis();
 		System.out.println("New Log file: " + logFilePath);
 		File logFile = new File(logFilePath);
 		try

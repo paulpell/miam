@@ -2,7 +2,7 @@ package org.paulpell.miam.net;
 
 import java.util.HashMap;
 
-import org.paulpell.miam.logic.Log;
+
 
 public class TimestampedMessage
 {
@@ -21,9 +21,7 @@ public class TimestampedMessage
 		CHAT_MESSAGE(		"CHAT_MESSAGE",			CONTROL_MSG_MASK | 3),
 		ERROR(				"ERROR",				CONTROL_MSG_MASK | 4),
 		SET_ID(				"SET_ID", 				CONTROL_MSG_MASK | 5),
-		// TODO: player names
-	//	SET_NAME(			"SET_NAME",				CONTROL_MSG_MASK | 6),
-	//	NAME_LIST(			"NAME_LIST",			CONTROL_MSG_MASK | 7),
+		CLIENT_LIST(		"CLIENT_LIST",			CONTROL_MSG_MASK | 6),
 		
 		// game messages
 		ACCEPT_ITEM(		"ACCEPT_ITEM", 			GAME_MSG_MASK | 0),
@@ -31,9 +29,10 @@ public class TimestampedMessage
 		ITEM_SPAWN(			"ITEM_SPAWN", 			GAME_MSG_MASK | 2),
 		GAME_OVER(			"GAME_OVER", 			GAME_MSG_MASK | 3),
 		SNAKE_DIED(			"SNAKE_DIED", 			GAME_MSG_MASK | 4),
-		GAME_SETTINGS(		"GAME_SETTINGS",		GAME_MSG_MASK | 5),
+		GAME_LEVEL(			"GAME_LEVEL",			GAME_MSG_MASK | 5),
 		GAME_START(			"GAME_START", 			GAME_MSG_MASK | 6),
 		GAME_STEP(			"GAME_STEP", 			GAME_MSG_MASK | 7),
+		GAME_VICTORY(		"GAME_VICTORY", 		GAME_MSG_MASK | 8),
 		;
 		
 		
@@ -52,11 +51,11 @@ public class TimestampedMessage
 	public final static HashMap<MsgTypes, Integer> type2int_ = new HashMap<MsgTypes, Integer>();
 	static
 	{
-		MsgTypes[] all = MsgTypes.values();
-		for (int i=0; i<all.length; ++i)
+		MsgTypes[] values = MsgTypes.values();
+		for (int i=0; i<values.length; ++i)
 		{
-			type2int_.put(all[i], all[i].msgType_);
-			int2type_.put(all[i].msgType_, all[i]);
+			type2int_.put(values[i], values[i].msgType_);
+			int2type_.put(values[i].msgType_, values[i]);
 		}
 	}
 	

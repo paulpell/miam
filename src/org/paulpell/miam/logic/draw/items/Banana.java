@@ -1,7 +1,7 @@
 package org.paulpell.miam.logic.draw.items;
 
 
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -40,7 +40,7 @@ public class Banana extends Item
 
 		shape_ = new Rectangle(x0, y0, s_width, s_height);
 		position_ = new Pointd(x0, y0);
-		this.duration_ = duration;
+		this.effectDuration_ = duration;
 		randomMoves_ = new LinkedList <Integer> ();
 		for (int i=0; i<duration; ++i)
 			randomMoves_.add(Utils.rand.nextInt(3));
@@ -49,7 +49,7 @@ public class Banana extends Item
 	
 	
 	@Override
-	public void draw(Graphics g)
+	public void draw(Graphics2D g)
 	{
 		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, (int)s_width, (int)s_height, null);
 	}
@@ -89,7 +89,8 @@ public class Banana extends Item
 	{
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Random on: " + movesToString());
-		// nothing to do
+
+		s.addScore(Constants.BANANA_SCORE);
 	}
 	
 	@Override
@@ -156,5 +157,11 @@ public class Banana extends Item
 	public String toString()
 	{
 		return "Banana[" + position_ + ", moves: " + movesToString() + "]";
+	}
+
+	@Override
+	public boolean shouldDisplayInPanelInfo()
+	{
+		return true;
 	}
 }

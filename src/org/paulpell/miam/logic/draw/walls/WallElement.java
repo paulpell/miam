@@ -1,33 +1,48 @@
 package org.paulpell.miam.logic.draw.walls;
 
 import java.awt.Color;
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 
 import org.paulpell.miam.geom.GeometricObject;
-import org.paulpell.miam.geom.Line;
+import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
 
-public class WallElement {
+public class WallElement
+{
 
-	GeometricObject geomObject;
-	Color color;
+	GeometricObject geomObject_;
+	Color color_;
 	
-	public WallElement(GeometricObject obj, Color c) {
-		geomObject = obj;
-		color = c;
+	public WallElement(GeometricObject obj, Color c)
+	{
+		geomObject_ = obj;
+		color_ = c;
 	}
 	
-	public Pointd isSnakeColliding(Snake s) {
-		Line l = new Line(s.getHead(), s.getPreviousHead());
-		return geomObject.intersect(l);
+	public Pointd isSnakeColliding(Snake s)
+	{
+		Segment l = s.getIntersectionTestLine();
+		return geomObject_.intersect(l);
 	}
 	
-	public void draw(Graphics g) {
-		g.setColor(color);
-		geomObject.draw(g);
+	public void draw(Graphics2D g)
+	{
+		g.setColor(color_);
+		if (null != geomObject_)
+			geomObject_.draw(g);
+	}
+	
+	public Color getColor()
+	{
+		return color_;
+	}
+	
+	public GeometricObject getGeometricObject()
+	{
+		return geomObject_;
 	}
 
 }

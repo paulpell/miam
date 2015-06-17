@@ -4,15 +4,19 @@ package org.paulpell.miam.net;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Vector;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Control;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.actions.SnakeAction;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.snakes.Snake;
+import org.paulpell.miam.logic.levels.Level;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 
 
@@ -34,7 +38,7 @@ public class Client
 	private boolean leavingServer_ = false;
 	
 	// 0 for master client, given by server for slave clients
-	protected int id_ = -1;
+	protected int clientId_ = -1;
 	
 	protected int gameTimestamp_; // controlled by server or control: this value is the last received, or increased by one on a game step
 	
@@ -100,7 +104,7 @@ public class Client
 			if (socket_ == null || socket_.isClosed())
 			{
 				listening_ = false;
-				Log.logMsg("Client " + id_+ " finishing");
+				Log.logMsg("Client " + clientId_+ " finishing");
 				control_.networkFeedback("Leaving server");
 			}
 			else
@@ -128,10 +132,11 @@ public class Client
 		}
 	}
 	
+	// all the messages are handled here, whether they are sent by or to the server
 	public void handleMessage(TimestampedMessage tmsg)
 	{
 		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("Client("+id_+") handling msg=|"+tmsg+"|");
+			Log.logMsg("Client("+clientId_+") handling msg=|"+tmsg+"|");
 		
 		if (0 != (tmsg.type_.msgType_ & TimestampedMessage.GAME_MSG_MASK))
 			handleGameMessage(tmsg);
@@ -160,8 +165,8 @@ public class Client
 			control_.endGame();
 			break;
 			
-		case GAME_SETTINGS:
-			control_.receiveNetworkSettings(new String(payload));
+		case GAME_LEVEL:
+			control_.receiveNetworkLevel(payload);
 			break;
 			
 		case GAME_START:
@@ -173,12 +178,15 @@ public class Client
 			break;
 			
 		case ITEM_SPAWN:
-			String item = new String(payload);
-			control_.onReceiveItem(item);
+			control_.onReceiveItem(payload);
 			break;
 			
 		case SNAKE_DIED:
 			receiveSnakeDeath(new String(payload));
+			break;
+			
+		case GAME_VICTORY:
+			receiveSnakesWon(payload);
 			break;
 			
 		default:
@@ -199,7 +207,11 @@ public class Client
 			break;
 			
 		case CLIENT_LEAVES:
-			Log.logErr("TODO: handle client exit"); // TODO client left!
+			control_.clientLeft(msg.from_);
+			break;
+			
+		case CLIENT_LIST:
+			receiveClientsList(new String(payload));
 			break;
 			
 		case CLIENT_REJECTED:
@@ -207,7 +219,6 @@ public class Client
 			break;
 			
 		case ERROR:
-			System.err.println("TODO: error");
 			Log.logErr("TODO: error");
 			break;
 			
@@ -219,15 +230,7 @@ public class Client
 		case SET_ID:
 			setId(0xFF & payload[0]);
 			break;
-			
-			// TODO: player names in client
-		//case SET_NAME:
-		//	control_.setPlayerName(msg.from_, new String(payload));
-		//	break;
-			
-		//case NAME_LIST:
-		//	break;
-			
+
 		default:
 			if (Globals.NETWORK_DEBUG)
 				Log.logErr("Unknown control command: |" + msg + "|");
@@ -260,7 +263,7 @@ public class Client
 			throws IOException
 	{
 		sendMessage(MsgTypes.CHAT_MESSAGE, message.getBytes());
-		control_.displayChatMessage(message, id_);
+		control_.displayChatMessage(message, clientId_);
 	}
 
 	public void sendErrorMessage() 
@@ -278,7 +281,7 @@ public class Client
 	public void sendItem(Item item) {
 		try
 		{
-			sendMessage(MsgTypes.ITEM_SPAWN, ItemEncoder.encodeItem(item).getBytes());
+			sendMessage(MsgTypes.ITEM_SPAWN, ItemEncoder.encodeItem(item));
 		}
 		catch (IOException e)
 		{
@@ -288,24 +291,24 @@ public class Client
 	
 	private void setId(int id)
 	{
-		id_ = id;
+		clientId_ = id;
 		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("Client sets id = " + id_);
+			Log.logMsg("Client sets id = " + clientId_);
 	}
 	
 	
 	public int getServerId()
 	{
-		return id_;
+		return clientId_;
 	}
 	
 	protected void sendMessage(MsgTypes type, byte[] payload)
 			throws IOException
 	{
-		TimestampedMessage msg = new TimestampedMessage(gameTimestamp_, id_, type, payload);
+		TimestampedMessage msg = new TimestampedMessage(gameTimestamp_, clientId_, type, payload);
 
 		if (Globals.NETWORK_DEBUG)
-			Log.logErr("Client (" + id_ + ") sends message: " + msg);
+			Log.logErr("Client (" + clientId_ + ") sends message: " + msg);
 		
 		NetMethods.sendMessage(socket_, msg);
 	}
@@ -317,10 +320,10 @@ public class Client
 		sendMessage(MsgTypes.GAME_START, null);
 	}
 	
-	public void sendGameSettings (Game game)
-			throws IOException 
+	public void sendLevel (Level level)
+			throws IOException, Exception
 	{
-		sendMessage(MsgTypes.GAME_SETTINGS, SettingsEncoder.encodeSettings(game).getBytes());
+		sendMessage(MsgTypes.GAME_LEVEL, LevelEncoder.encodeLevel(level));
 	}
 	
 	public void sendStepCommand (String stepString)
@@ -368,6 +371,11 @@ public class Client
 		double y = NetMethods.str2double(new String(ybs));
 		control_.onSnakeDeath(id, new Pointd(x, y));
 	}
+	
+	public void receiveSnakesWon(byte[] bs)
+	{
+		control_.onSnakesWon(bs);
+	}
 
 	public void sendSnakeAcceptedItem(int snakeIndex, int itemIndex)
 	{
@@ -396,5 +404,78 @@ public class Client
 	public void increaseTimestamp()
 	{
 		++ gameTimestamp_;
+	}
+
+	public void sendClientsList(Collection<ClientInfo> clients)
+	{
+		String msg = "" + (char)clients.size();
+		for (ClientInfo ci: clients)
+		{
+			String cmsg = new String(NetMethods.int2bytes(ci.getClientId()));
+			String cname = ci.getName();
+			cmsg += (char)cname.length() + cname;
+			
+			ArrayList <PlayerInfo> pis = ci.getPlayerInfos();
+			cmsg += (char)pis.size();
+			
+			for (PlayerInfo pi: pis)
+			{
+				cmsg += new String(NetMethods.int2bytes(pi.getSnakeId()));
+				String pname = pi.getName();
+				cmsg += (char)pname.length() + pname;
+			}
+			msg += cmsg;
+		}
+		
+		try
+		{
+			sendMessage(MsgTypes.CLIENT_LIST, msg.getBytes());
+		}
+		catch (Exception e)
+		{
+			control_.networkFeedback("Can not send clients list: " + e.getLocalizedMessage());
+		}
+	}
+	
+	private void receiveClientsList(String msg)
+	{
+		HashMap <Integer, ClientInfo> clientId2Infos = new HashMap<Integer, ClientInfo>();
+		int nr = (int)msg.charAt(0);
+		msg = msg.substring(1);
+		for (int i=0; i<nr; ++i)
+		{
+			int cid = NetMethods.bytes2int(msg.substring(0,4).getBytes());
+			int cnamelen = (int)msg.charAt(4);
+			String cname = msg.substring(5, 5 + cnamelen);
+			ClientInfo ci = new ClientInfo(cid, cname);
+			int nrpi = (int)msg.charAt(cnamelen + 5);
+			msg = msg.substring(cnamelen + 6);
+			for (int j=0; j<nrpi; ++j)
+			{
+				int sid = NetMethods.bytes2int(msg.substring(0, 4).getBytes());
+				int snamelen = (int)msg.charAt(4);
+				String sname = msg.substring(5, 5 + snamelen);
+				PlayerInfo pi = new PlayerInfo(sname, sid);
+				ci.addPlayerInfo(pi);
+				msg = msg.substring(5 + snamelen);
+			}
+			clientId2Infos.put(cid, ci);
+		}
+		control_.setClientInfos(clientId2Infos);
+	}
+
+	public void sendSnakesWon(Vector<Snake> ss)
+	{
+		try
+		{
+			byte[] bs = new byte[ss.size()];
+			for (int i=0; i<bs.length; ++i)
+				bs[i] = (byte)ss.get(i).getId();
+			sendMessage(MsgTypes.GAME_VICTORY, bs);
+		}
+		catch (Exception e)
+		{
+			control_.networkFeedback("Can not send victory: " + e.getLocalizedMessage());
+		}
 	}
 }

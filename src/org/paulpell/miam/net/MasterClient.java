@@ -15,7 +15,7 @@ public class MasterClient extends Client
 	public MasterClient(Control control)
 	{
 		super(control);
-		id_ = 0;
+		clientId_ = 0;
 	}
 
 	public void setServer(Server gameServer)
@@ -28,31 +28,11 @@ public class MasterClient extends Client
 	protected void sendMessage(MsgTypes type, byte[] payload)
 			throws IOException
 	{
-		TimestampedMessage msg = new TimestampedMessage(gameTimestamp_, id_, type, payload);
+		TimestampedMessage msg = new TimestampedMessage(gameTimestamp_, clientId_, type, payload);
 
 		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("MasterClient (" + id_ + ") sends message: " + msg);
+			Log.logMsg("MasterClient (" + clientId_ + ") sends message: " + msg);
 		
 		server_.broadcastToSlave(msg);
 	}
-	
-	/*
-	protected void sendGameMessage(byte[] bytes)
-			throws IOException 
-	{
-		GameMessage msg = new GameMessage(gameTimestamp_, bytes);
-		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("MasterClient send game message: " + msg);
-		server_.broadcastToSlave(msg);
-	}
-
-	@Override
-	protected void sendControlMessage(byte[] bytes)
-			throws IOException 
-	{
-		ControlMessage msg = new ControlMessage(gameTimestamp_, bytes);
-		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("MasterClient send control message: " + msg);
-		server_.broadcastToSlave(msg);
-	}*/
 }

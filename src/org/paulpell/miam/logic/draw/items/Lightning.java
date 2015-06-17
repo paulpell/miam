@@ -1,7 +1,7 @@
 package org.paulpell.miam.logic.draw.items;
 
 
-import java.awt.Graphics;
+import java.awt.Graphics2D;
 
 import javax.swing.ImageIcon;
 
@@ -12,7 +12,6 @@ import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.snakes.Snake;
-import org.paulpell.miam.net.NetMethods;
 
 
 
@@ -32,7 +31,7 @@ public class Lightning extends Item
 
 		shape_ = new Rectangle(x0, y0, s_width, s_height);
 		position_ = new Pointd(x0, y0);
-		duration_ = 0;
+		effectDuration_ = 0;
 		extraSpeed_ = Utils.rand.nextDouble() * Globals.SNAKE_EXTRA_SPEEDUP;
 	}
 	
@@ -40,7 +39,7 @@ public class Lightning extends Item
 	@Override
 	public boolean effectStep(Snake s)
 	{
-		if (duration_ == -1)
+		if (effectDuration_ == -1)
 		{
 			s.addSpeedupSpecial(-extraSpeed_);
 			return true; // true when cancelled
@@ -63,7 +62,7 @@ public class Lightning extends Item
 	}
 	
 	@Override
-	public void draw(Graphics g)
+	public void draw(Graphics2D g)
 	{
 		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, null);
 	}
@@ -95,5 +94,12 @@ public class Lightning extends Item
 	@Override
 	public void applyExtraParamsDescription(String params) {
 		extraSpeed_ = Double.longBitsToDouble(Long.parseLong(params));
+	}
+
+
+	@Override
+	public boolean shouldDisplayInPanelInfo()
+	{
+		return true;
 	}
 }
