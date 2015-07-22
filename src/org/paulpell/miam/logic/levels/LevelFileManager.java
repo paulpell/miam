@@ -1,4 +1,4 @@
-package org.paulpell.miam.gui.editor;
+package org.paulpell.miam.logic.levels;
 
 import java.awt.FileDialog;
 import java.io.File;
@@ -6,21 +6,20 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import org.paulpell.miam.logic.levels.Level;
+import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.net.LevelEncoder;
 
 
 public class LevelFileManager
 {
 
-	static final String DEFAULT_FOLDER = "saves";
 	
-	LevelEditor editor_;
+	LevelEditorControl leControl_;
 	File currentFile_;
 	
-	public LevelFileManager(LevelEditor le)
+	public LevelFileManager(LevelEditorControl lec)
 	{
-		editor_ = le;
+		leControl_ = lec;
 	}
 	
 	
@@ -34,9 +33,10 @@ public class LevelFileManager
 	
 	protected void saveLevelToNewFile(Level l)
 	{
-		FileDialog saveDialog = new FileDialog(editor_, "Save level", FileDialog.SAVE);
-		saveDialog.setDirectory(DEFAULT_FOLDER);
-		
+		FileDialog saveDialog = new FileDialog(leControl_.getFrame(), "Save level", FileDialog.SAVE);
+		saveDialog.setDirectory(Constants.LEVEL_FOLDER);
+
+		saveDialog.toFront();
 		saveDialog.setVisible(true);
 		
 		File[] f = saveDialog.getFiles();
@@ -56,12 +56,12 @@ public class LevelFileManager
 				f.createNewFile();
 			} catch (IOException e)
 			{
-				editor_.displayMessage("Could not create file : " + e.getMessage());
+				leControl_.displayMessage("Could not create file : " + e.getMessage());
 			}	
 		}
 		if (!f.canWrite())
 		{
-			editor_.displayMessage("Can not write to file: " + f.getAbsolutePath());
+			leControl_.displayMessage("Can not write to file: " + f.getAbsolutePath());
 			return;
 		}
 		
@@ -75,38 +75,28 @@ public class LevelFileManager
 		}
 		catch (Exception e)
 		{
-			editor_.displayMessage("Can not write level: " +e.getMessage());
+			leControl_.displayMessage("Can not write level: " +e.getMessage());
 		}
 	}
 	
 	protected Level openLevel()
+			throws Exception
 	{
-		FileDialog openDialog = new FileDialog(editor_, "Choose level", FileDialog.LOAD);
+		FileDialog openDialog = new FileDialog(leControl_.getFrame(), "Choose level", FileDialog.LOAD);
 		openDialog.setMultipleMode(false);
-		openDialog.setDirectory(DEFAULT_FOLDER);
+		openDialog.setDirectory(Constants.LEVEL_FOLDER);
+		
+		openDialog.toFront();
 		
 		openDialog.setVisible(true);
 		
 		File[] f = openDialog.getFiles();
 		
-		if (f.length != 0)
-		{
-			currentFile_ = f[0];
-			try
-			{
-				return LevelFileManager.readLevelFromFile(currentFile_);
-			}
-			catch (IOException ioe)
-			{
-				return null;
-			}
-			catch (Exception e)
-			{
-				return null;
-			}
-		}
+		if (f.length == 0)
+			return null;
 		
-		return null;
+		currentFile_ = f[0];
+		return LevelFileManager.readLevelFromFile(currentFile_);
 	}
 
 	public static Level readLevelFromFile(File f)

@@ -70,7 +70,7 @@ public class ScoreItem extends Item
 
 
 	@Override
-	public Item newItem(double x, double y, Game game) 
+	public Item newItem(double x, double y) //, Game game) 
 	{
 		return new ScoreItem(x,  y);
 	}

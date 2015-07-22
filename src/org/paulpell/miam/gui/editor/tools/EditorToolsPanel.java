@@ -1,29 +1,36 @@
 package org.paulpell.miam.gui.editor.tools;
 
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.JToggleButton;
 import javax.swing.SwingConstants;
 
-import org.paulpell.miam.gui.editor.LevelEditor;
+import org.paulpell.miam.logic.draw.items.AllTheItems;
+import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 @SuppressWarnings("serial")
 public class EditorToolsPanel extends JPanel
 {
 	
-	final LevelEditor levelEditor_;
+	final LevelEditorControl leControl_;
 	
 	JLabel positionLabel_;
 
-	public EditorToolsPanel(LevelEditor le)
+	public EditorToolsPanel(LevelEditorControl lec)
 	{
 		
-		levelEditor_ = le;
+		leControl_ = lec;
 		
 		setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		
@@ -31,55 +38,33 @@ public class EditorToolsPanel extends JPanel
 		
 		for (EditorToolsEnum et : EditorToolsEnum.values())
 		{
-			JToggleButton b = et.createToggleButton(levelEditor_);
+			
+			JToggleButton b = et.createToggleButton(leControl_);
 			toolButtonsGroup.add(b);
 			add(b);
 		}
 		
-		/*add(Box.createVerticalGlue());
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.LINE, null);
-		toolButtonsGroup.add(button);
-		add(button);
-
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.RECTANGLE, null);
-		toolButtonsGroup.add(button);
-		add(button);
+		// select hand
+		((JToggleButton)getComponent(0)).setSelected(true);
 		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.CIRCLE, null);
-		toolButtonsGroup.add(button);
-		add(button);
 		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.HAND, null);
-		toolButtonsGroup.add(button);
-		add(button);
-		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.SCORE, null);
-		toolButtonsGroup.add(button);
-		add(button);
-		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.BANANA, null);
-		toolButtonsGroup.add(button);
-		add(button);
-		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.BANANA_SP, null);
-		toolButtonsGroup.add(button);
-		add(button);
-		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.REVERSE, null);
-		toolButtonsGroup.add(button);
-		add(button);
-		
-		button = new EditorToolButton(levelEditor_, EditorToolsEnum.LIGHTNING, null);
-		toolButtonsGroup.add(button);
-		add(button);*/
-		
-		/*button = new EditorToolButton(levelEditor_, EditorToolsEnum.ARROW, null);
-		toolButtonsGroup.add(button);
-		add(button);
-*/
 		add(Box.createVerticalStrut(5));
 		add(new JSeparator(SwingConstants.HORIZONTAL));
 		add(Box.createVerticalStrut(5));
+		
+		ImageIcon lightIcon = AllTheItems.getImageIcon(AllTheItems.INDEX_LIGHTNING);
+		JButton tryButton = new JButton ("Try", lightIcon);
+		tryButton.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent arg0)
+			{
+				leControl_.playEditedLevel();
+			}
+		});
+		tryButton.setMnemonic(KeyEvent.VK_T);
+		add(tryButton);
+		
 		
 		/*JButton cancelBut =new JButton("Cancel");
 		cancelBut.addActionListener(new ActionListener() {
@@ -94,7 +79,7 @@ public class EditorToolsPanel extends JPanel
 		add(positionLabel_);
 	}
 	
-	public void setPosition(String s)
+	public void setPositionText(String s)
 	{
 		positionLabel_.setText(s);
 	}

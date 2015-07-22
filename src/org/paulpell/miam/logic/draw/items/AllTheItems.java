@@ -1,6 +1,7 @@
 package org.paulpell.miam.logic.draw.items;
 
-import javax.swing.Icon;
+
+import javax.swing.ImageIcon;
 
 import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
@@ -18,7 +19,7 @@ public class AllTheItems
 	public final static Item[] items =
 		{
 		new Banana(0,0),
-		new BananaSpecial(0,0, null),
+		new BananaSpecial(0,0), //, null),
 		new Lightning(0,0),
 		new ScoreItem(0, 0),
 		new ReversingItem(0,0),
@@ -47,7 +48,7 @@ public class AllTheItems
 		}
 	}
 	
-	public static Icon getImageIcon(int i)
+	public static ImageIcon getImageIcon(int i)
 	{
 		if (i < 0 || i > INDEX_LAST)
 			return null;

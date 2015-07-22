@@ -125,4 +125,10 @@ public class Circle extends GeometricObject
 	{
 		return new Circle(dv.add(position_), radius_);
 	}
+
+	@Override
+	public GeometricObject clone()
+	{
+		return new Circle(position_.clone(), radius_);
+	}
 }

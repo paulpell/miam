@@ -23,6 +23,8 @@ public abstract class GeometricObject
 	
 	public abstract GeometricObject translate(Vector2D dv);
 	
+	public abstract GeometricObject clone();
+	
 	// pretty ugly method to intersect any type of GeomObject against any other
 	public final Pointd intersectGeneric(GeometricObject g)
 	{

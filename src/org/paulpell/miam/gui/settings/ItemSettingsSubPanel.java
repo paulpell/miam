@@ -1,6 +1,7 @@
 package org.paulpell.miam.gui.settings;
 
 import java.awt.GridLayout;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
@@ -23,7 +24,8 @@ import org.paulpell.miam.logic.draw.items.Item;
 
 
 @SuppressWarnings("serial")
-public class ItemSettingsSubPanel extends Box {
+public class ItemSettingsSubPanel extends Box
+{
 
 	// this list stores the buttons to disable when score_only mode is activated:
 	// we don't want to use the probabilities per item.
@@ -33,10 +35,10 @@ public class ItemSettingsSubPanel extends Box {
 	OneItemProbBoxes[] itemBoxes;
 	
 	
-	public ItemSettingsSubPanel() {
+	public ItemSettingsSubPanel()
+	{
 
 		super(BoxLayout.Y_AXIS);
-		
 		
 		addItemsOnly();
 		addItemsProbs();
@@ -44,12 +46,12 @@ public class ItemSettingsSubPanel extends Box {
 
 		addApplyButton();
 		
-		
 		setItemSettingsEnabled(!Globals.SCORE_ITEMS_ONLY);
 	}
 	
 
-	void apply() {
+	void apply()
+	{
 		Globals.SCORE_ITEMS_ONLY = itemsOnlyCB.isSelected();
 		if (!Globals.SCORE_ITEMS_ONLY) {
 			int weights[] = new int[itemBoxes.length];
@@ -61,11 +63,16 @@ public class ItemSettingsSubPanel extends Box {
 	
 	
 	// adds a checkbox to set whether only score_ items are used
-	void addItemsOnly() {
-		JPanel scoreItemsOnlyPanel = new JPanel();
+	void addItemsOnly()
+	{
+		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
+		JPanel scoreItemsOnlyPanel = new JPanel(layout);
 		scoreItemsOnlyPanel.add(new JLabel("Score items only"));
-		itemsOnlyCB.addActionListener( new ActionListener() {
-			public void actionPerformed(ActionEvent ev) {
+		itemsOnlyCB.addActionListener( new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent ev)
+			{
 				boolean b = ! itemsOnlyCB.isSelected();
 				setItemSettingsEnabled(b);
 			}

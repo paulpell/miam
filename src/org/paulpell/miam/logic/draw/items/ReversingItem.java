@@ -68,7 +68,7 @@ public class ReversingItem extends Item
 
 
 	@Override
-	public Item newItem(double x, double y, Game game)
+	public Item newItem(double x, double y) //, Game game)
 	{
 		return new ReversingItem(x, y);
 	}

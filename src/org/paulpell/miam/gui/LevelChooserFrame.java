@@ -1,17 +1,16 @@
 package org.paulpell.miam.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowFocusListener;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -28,24 +27,26 @@ import javax.swing.SwingUtilities;
 
 import org.paulpell.miam.logic.draw.items.AllTheItems;
 
-import org.paulpell.miam.gui.editor.LevelFileManager;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.GameSettings;
+import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.levels.Level;
 import org.paulpell.miam.logic.levels.DefaultLevel;
+import org.paulpell.miam.logic.levels.LevelFileManager;
 
 @SuppressWarnings("serial")
 public class LevelChooserFrame
 		extends JFrame
 		implements KeyListener
+		, WindowFocusListener
 {
 
 	JButton chooseButton_;
 	JComboBox <String>  levelChoice_;
 	JComboBox<Integer> snakeNoList_;
 	
-	boolean closed_ = false; // to indicate that user pressed ESC
+	private boolean userCancel_ = false; // to indicate that user pressed ESC
 	
 	public LevelChooserFrame(final Frame f)
 	{
@@ -56,7 +57,6 @@ public class LevelChooserFrame
 				createGUI(f);
 			}
 		});
-		
 	}
 	
 	private void createGUI(Frame f)
@@ -75,11 +75,6 @@ public class LevelChooserFrame
 
 		snakeNoList_ = new JComboBox<Integer>(ss);
 		snakeNoList_.setSelectedIndex(Globals.NUMBER_OF_SNAKES - 1);
-		snakeNoList_.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				updateNumSnakes();
-			}
-		});
 		snakeNoPanel.add(snakeNoList_, BorderLayout.EAST);
 		c = new GridBagConstraints();
 		c.gridx = 0;
@@ -92,9 +87,9 @@ public class LevelChooserFrame
 		JPanel levelPanel = new JPanel();
 		levelPanel.add(new JLabel("Level:"), BorderLayout.WEST);
 		levelChoice_ = new JComboBox<String> ();
-		String[] s = listLevels();
+		String[] levelsList = listLevels();
 		DefaultComboBoxModel <String> model =
-				new DefaultComboBoxModel <String> (s);
+				new DefaultComboBoxModel <String> (levelsList);
 		levelChoice_.setModel(model);
 		c = new GridBagConstraints();
 		c.gridx = 1;
@@ -105,7 +100,6 @@ public class LevelChooserFrame
 		add(levelPanel, c);
 		
 		// start button
-		//Icon lightningIcon = AllTheItems.items[AllTheItems.INDEX_LIGHTNING].getImageIcon();
 		Icon lightningIcon = AllTheItems.getImageIcon(AllTheItems.INDEX_LIGHTNING);
 		chooseButton_ = new JButton("Start", lightningIcon);
 		chooseButton_.addActionListener(new ActionListener() {
@@ -118,21 +112,14 @@ public class LevelChooserFrame
 		c.gridx = 1;
 		c.gridy = 1;
 		c.weighty = 0;
-		c.insets = new Insets(5, 5, 5, 5);
+		c.insets = new Insets(25, 5, 15, 5);
 		add(chooseButton_, c);
 		
-		Dimension size = new Dimension(300, 200);
+		addWindowFocusListener(this);
+
 		setLocationRelativeTo(f);
-		setPreferredSize(size);
-		setSize(size);
-		doLayout();
+		pack();
 		setVisible(true);
-	}
-	
-	private void updateNumSnakes()
-	{
-		ListModel<Integer> lm = snakeNoList_.getModel();
-		Globals.NUMBER_OF_SNAKES = lm.getElementAt(snakeNoList_.getSelectedIndex());
 	}
 	
 	private String[] listLevels()
@@ -142,9 +129,12 @@ public class LevelChooserFrame
 		
 		try
 		{
-			File folder = new File("saves");
-			for (String s : folder.list())
-				levelNames.add(s);
+			File folder = new File(Constants.LEVEL_FOLDER);
+			if (folder != null)
+			{
+				for (String s : folder.list())
+					levelNames.add(s);
+			}
 		}
 		catch (Exception e)
 		{}
@@ -160,15 +150,24 @@ public class LevelChooserFrame
 		{
 			notify();
 		}
-		
 	}
 	
 	// returns null if default level is chosen
 	public Level getLevel(GameSettings settings)
 			throws Exception
 	{
+
+		synchronized (this)
+		{
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				Log.logException(e);
+			}
+		}
+		
 		Level l;
-		if (closed_)
+		if (userCancel_)
 			l = null;
 		
 		else if (levelChoice_.getSelectedIndex() == 0)
@@ -178,11 +177,18 @@ public class LevelChooserFrame
 		{
 			File f = new File(
 					"." + File.separatorChar
-					+ "saves" + File.separatorChar
+					+ Constants.LEVEL_FOLDER + File.separatorChar
 					+ levelChoice_.getSelectedItem());
 			l = LevelFileManager.readLevelFromFile(f);
 		}
-
+		
+		ListModel<Integer> lm = snakeNoList_.getModel();
+		Globals.NUMBER_OF_SNAKES = lm.getElementAt(snakeNoList_.getSelectedIndex());
+		settings.numberOfSnakes_ = Globals.NUMBER_OF_SNAKES;
+		if (null != l)
+		{
+			l.setGameSettings(settings);
+		}
 		setVisible(false);
 		dispose();
 		
@@ -215,10 +221,12 @@ public class LevelChooserFrame
 		case KeyEvent.VK_DOWN:
 			incrementLevel(-1);
 			break;
+			
 		case KeyEvent.VK_ESCAPE:
-			closed_ = true;
+			userCancel_ = true;
 			endWait();
 			break;
+			
 		default:
 		}
 	}
@@ -226,6 +234,16 @@ public class LevelChooserFrame
 	@Override
 	public void keyTyped(KeyEvent arg0)
 	{
+	}
+
+	@Override
+	public void windowGainedFocus(WindowEvent arg0) {}
+
+	@Override
+	public void windowLostFocus(WindowEvent arg0)
+	{
+		toFront();
+		requestFocus();
 	}
 
 }

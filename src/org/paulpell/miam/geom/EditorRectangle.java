@@ -73,7 +73,8 @@ public class EditorRectangle extends EditorDisplayElement
 			throw new IllegalArgumentException("Bad selected index!");
 		}
 		
-		shape_ = new Rectangle(where, orig.points_[otherIndex]);
+		shape_ = new Rectangle(where, orig.points_[otherIndex], orig.isFilled());
+		select(where);
 	}
 
 }

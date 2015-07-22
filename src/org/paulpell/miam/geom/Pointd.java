@@ -21,7 +21,7 @@ public class Pointd
 		return new Point((int)x_,(int)y_);
 	}
 	
-	public Object clone()
+	public Pointd clone()
 	{
 		return new Pointd(x_,y_);
 	}

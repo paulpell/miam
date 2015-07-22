@@ -72,4 +72,27 @@ public class Arith
 		return (360 + d) % 360;
 	}
 	
+	public static int classicDirFromDegrees(int angle)
+	{
+		// TODO check whether up and down are correct!
+		int a = (angle + 360) % 360;
+		if (a <= 45 || a > 315)
+			return Constants.DIR_RIGHT;
+		if (a > 45 && a <= 135)
+			return Constants.DIR_DOWN;
+		if (a > 135 && a <= 225)
+			return Constants.DIR_LEFT;
+		return Constants.DIR_UP;
+	}
+	
+	public static double deg2rad(int d)
+	{
+		return d * Math.PI / 180.;
+	}
+	
+	public static int rad2deg(double r)
+	{
+		return (int)(180. * r / Math.PI);
+	}
+	
 }

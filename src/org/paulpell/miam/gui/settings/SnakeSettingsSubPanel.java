@@ -194,7 +194,7 @@ public class SnakeSettingsSubPanel extends Box
 			specialTF.addKeyListener(new SetActionKeyListener(i, Constants.SNAKE_ACTION_SPECIAL, specialTF));
 			controlPanel.add(specialTF);
 			
-			keyControlsPane.addTab("Snake" + i,controlPanel);
+			keyControlsPane.addTab("Snake" + (i+1),controlPanel);
 		}
 		
 

@@ -6,20 +6,21 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
 import org.paulpell.miam.geom.Pointd;
+import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 class DrawPanelMouseHandler implements MouseListener, MouseMotionListener
 {
 	
-	LevelEditor levelEditor_;
+	LevelEditorControl leControl_;
 	
-	public DrawPanelMouseHandler(LevelEditor le) {
-		levelEditor_ = le;
+	public DrawPanelMouseHandler(LevelEditorControl lec) {
+		leControl_ = lec;
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
 		Point p = arg0.getPoint();
-		levelEditor_.clickedPoint(new Pointd(p.x, p.y));
+		leControl_.clickedPoint(new Pointd(p.x, p.y));
 	}
 
 	@Override
@@ -27,7 +28,7 @@ class DrawPanelMouseHandler implements MouseListener, MouseMotionListener
 
 	@Override
 	public void mouseExited(MouseEvent arg0) {
-		levelEditor_.cancelCurrent();
+		leControl_.cancelCurrent();
 	}
 
 	@Override
@@ -43,6 +44,6 @@ class DrawPanelMouseHandler implements MouseListener, MouseMotionListener
 	public void mouseMoved(MouseEvent arg0)
 	{
 		Point p = arg0.getPoint();
-		levelEditor_.mouseMoved(new Pointd(p.x, p.y));
+		leControl_.mouseMoved(new Pointd(p.x, p.y));
 	}
 }

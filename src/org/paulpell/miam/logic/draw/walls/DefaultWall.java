@@ -23,16 +23,16 @@ public class DefaultWall extends Wall
 		
 		int thick = 3;
 		
-		Rectangle left = new Rectangle(0, 0, thick, height_);
+		Rectangle left = new Rectangle(0, 0, thick, height_, true);
 		WallElement we1 = new WallElement(left, color_);
 		pushElement(we1);
-		Rectangle right = new Rectangle(width_ - thick, 0, thick, height_);
+		Rectangle right = new Rectangle(width_ - thick, 0, thick, height_, true);
 		WallElement we2 = new WallElement(right, color_);
 		pushElement(we2);
-		Rectangle top = new Rectangle(0, 0, width_, thick);
+		Rectangle top = new Rectangle(0, 0, width_, thick, true);
 		WallElement we3 = new WallElement(top, color_);
 		pushElement(we3);
-		Rectangle bottom = new Rectangle(0, height_ - thick, width_, thick);
+		Rectangle bottom = new Rectangle(0, height_ - thick, width_, thick, true);
 		WallElement we4 = new WallElement(bottom, color_);
 		pushElement(we4);
 		

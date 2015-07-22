@@ -22,7 +22,7 @@ public class ItemEncoder
 	private enum ItemEncodingEnum
 	{
 		BANANA(new Banana(0,0)),
-		BANANA_SPECIAL(new BananaSpecial(0,0,null)),
+		BANANA_SPECIAL(new BananaSpecial(0,0)), //,null)),
 		LIGHTNING(new Lightning(0,0)),
 		REVERSE(new ReversingItem(0,0)),
 		SCORE(new ScoreItem(0,0));
@@ -97,10 +97,8 @@ public class ItemEncoder
 		return repr;
 	}
 	
-	//public static Item decodeItem(String repr, Game game)
-	public static Item decodeItem(byte[] repr, Game game)
+	public static Item decodeItem(byte[] repr) //, Game game)
 	{
-		//Item instance = encoded2class_.get(repr.charAt(0)).getInstance();
 		Item instance = encoded2class_.get(repr[0]).getInstance();
 		Class<?> theClass = instance.getClass();
 		
@@ -112,8 +110,8 @@ public class ItemEncoder
 		byte[] extrabs = NetMethods.getSubBytes(repr, 3 + poslen, 3 + poslen + extralen);
 		String extraParams = new String(extrabs);
 		
-		Class<?>[] paramsTypes = new Class[]{double.class, double.class, Game.class};
-		Object[] params = new Object[]{pos.x_, pos.y_, game};
+		Class<?>[] paramsTypes = new Class[]{double.class, double.class}; //, Game.class};
+		Object[] params = new Object[]{pos.x_, pos.y_}; //, game};
 		try
 		{
 			Item i = (Item)theClass.getMethod("newItem", paramsTypes).invoke(instance, params);

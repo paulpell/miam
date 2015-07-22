@@ -1,4 +1,4 @@
-package org.paulpell.miam.logic.actions;
+package org.paulpell.miam.logic.gameactions;
 
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.draw.snakes.Snake;

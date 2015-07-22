@@ -20,15 +20,15 @@ import org.paulpell.miam.gui.KeyMapping;
 import org.paulpell.miam.gui.LevelChooserFrame;
 import org.paulpell.miam.gui.MainFrame;
 import org.paulpell.miam.gui.MainKeyDispatcher;
-import org.paulpell.miam.gui.editor.LevelEditor;
 import org.paulpell.miam.gui.net.OnlinePlayersPanel;
 import org.paulpell.miam.logic.PAINT_STATE;
-import org.paulpell.miam.logic.actions.SnakeAction;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.items.ItemFactory;
 import org.paulpell.miam.logic.draw.snakes.Snake;
+import org.paulpell.miam.logic.gameactions.SnakeAction;
 import org.paulpell.miam.logic.levels.Level;
+import org.paulpell.miam.logic.levels.LevelEditorControl;
 import org.paulpell.miam.net.ActionEncoder;
 import org.paulpell.miam.net.Client;
 import org.paulpell.miam.net.ClientInfo;
@@ -49,13 +49,14 @@ public class Control
 
 	PAINT_STATE state_ = PAINT_STATE.WELCOME;
 	Game game_;
+	boolean isEditedLevel_;
 	
 	Timer timer_;
 	TimerTask task_;
 	
 	MainFrame mainFrame_;
 
-	LevelEditor levelEditor_;
+	LevelEditorControl leControl_;
 	LevelChooserFrame levelChooserFrame_;
 	
 	// the server may be hosted in this instance
@@ -88,7 +89,8 @@ public class Control
 			public void run()
 			{
 				mainFrame_ = new MainFrame(Control.this); // will appear and stay
-				levelEditor_ = new LevelEditor(Control.this);
+				//levelEditor_ = new LevelEditorFrame(Control.this);
+				leControl_ = new LevelEditorControl(Control.this);
 				
 				KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
 				//kfm.addKeyEventDispatcher(new MainKeyDispatcher(mainFrame_, levelEditor_));
@@ -169,7 +171,13 @@ public class Control
 	
 	public void endGame()
 	{
-		if (!isOnline_ || isServer_)
+		if (isEditedLevel_)
+		{
+			isEditedLevel_ = false;
+			leControl_.focus();
+		}
+
+		if (isEditedLevel_ || !isOnline_ || isServer_)
 		{
 			timer_.cancel();
 			itemFactory_.shutdown();
@@ -198,24 +206,15 @@ public class Control
 			// and is notified when user chooses a level!
 			levelChooserFrame_ = new LevelChooserFrame(mainFrame_);
 
-			synchronized (levelChooserFrame_)
-			{
-				try {
-					levelChooserFrame_.wait();
-				} catch (InterruptedException e) {
-					Log.logException(e);
-				}
-			}
 			
 			GameSettings settings = GameSettings.getCurrentSettings();
-			Level level = levelChooserFrame_.getLevel(settings);
+			Level level = levelChooserFrame_.getLevel(settings); // blocking
 			levelChooserFrame_ = null; // needed for correct keyevent dispatching
 			if (null == level)
 				return false;
 			
-			level.setGameSettings(settings);
-			
 			setLevelForNewGame(level);
+			isEditedLevel_ = false;
 			return true;
 		}
 		catch (Exception e)
@@ -227,6 +226,22 @@ public class Control
 		
 	}
 	
+	public void playEditedGame(Level l)
+	{
+		setLevelForNewGame(l);
+		isEditedLevel_ = true;
+		
+		mainFrame_.toFront();
+		mainFrame_.requestFocus();
+		
+
+		startItemFactory();
+
+		startGameTimer(createLocalGameTimerTask());
+		
+		showGameWindow();
+	}
+	
 	
 	
 	// Local game
@@ -235,13 +250,12 @@ public class Control
 	{	
 		startItemFactory();
 
-		lastFrameTime_ = System.currentTimeMillis();
 		startGameTimer(createLocalGameTimerTask());
 		
 		showGameWindow();
 	}
 	
-	
+
 	private TimerTask createLocalGameTimerTask()
 	{
 		return new TimerTask()
@@ -328,7 +342,6 @@ public class Control
 
 		startItemFactory();
 
-		lastFrameTime_ = System.currentTimeMillis();
 		startGameTimer(createMasterGameTimerTask());
 		
 		showGameWindow();
@@ -341,6 +354,8 @@ public class Control
 			timer_.cancel();
 		timer_ = new Timer("drawing");
 
+		lastFrameTime_ = System.currentTimeMillis();
+		
 		task_ = task;
 		timer_.scheduleAtFixedRate(task, 0, 1000 / Globals.FPS);
 
@@ -510,7 +525,7 @@ public class Control
 	/* Fire up the level editor *********************************/
 	private void levelEditor()
 	{
-		levelEditor_.setVisible(true);
+		leControl_.setVisible(true);
 	}
 	
 	/* Interaction methods (keyboard) ***************************/
@@ -542,7 +557,7 @@ public class Control
 	public void newPressed()
 	{
 		// thread is used to block the level chooser
-		new Thread()
+		new Thread("level-chooser")
 		{
 			public void run()
 			{
@@ -586,17 +601,26 @@ public class Control
 		}
 	}
 	
-	public KeyListener whoShouldReceiveKeyEvents()
+	// can return null
+	public KeyListener whoShouldReceiveKeyEvents(boolean ctrl)
 	{
 		if (null != levelChooserFrame_)
+		{
 			return levelChooserFrame_;
+		}
 		
-		if (levelEditor_.isVisible())
-			return levelEditor_;
+		if (!isEditedLevel_ && leControl_.isVisible())
+		{
+			if (ctrl)
+				return null; // let the accelerators do the job
+			return leControl_.getKeyListener();
+		}
 		
-		if (mainFrame_.shouldGetKeyEvents())
+		if (isEditedLevel_ || mainFrame_.shouldGetKeyEvents())
+		{
 			return mainFrame_;
-		
+		}
+
 		return null;
 	}
 	
@@ -830,6 +854,7 @@ public class Control
 	
 	private void stopServer()
 	{
+		stopClient();
 		if (null != gameServer_)
 		{
 			gameServer_.end();
@@ -954,7 +979,7 @@ public class Control
 	public void onReceiveItem(byte[] itemRepr)
 	{
 		if (isOnline_ && null != game_)
-			game_.addItem(ItemEncoder.decodeItem(itemRepr, game_));
+			game_.addItem(ItemEncoder.decodeItem(itemRepr));
 	}
 	
 	public void sendNetworkLevel() throws IOException

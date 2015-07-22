@@ -26,7 +26,7 @@ public class Log
 		}
 		catch (Exception e)
 		{
-			System.err.println("Log intialisation failed: " + e.getMessage());
+			System.err.println("Log initialisation failed: " + e.getMessage());
 		}
 	}
 	
@@ -37,8 +37,10 @@ public class Log
 	{
 		try
 		{
-			writer_.write(System.currentTimeMillis() + " Info    " + msg + "\n");
+			String s = System.currentTimeMillis() + " Info    " + msg + "\n";
+			writer_.write(s);
 			writer_.flush();
+			System.out.println(s);
 		}
 		catch (Exception e) {}
 	}
@@ -47,9 +49,10 @@ public class Log
 	{
 		try
 		{
-			System.err.println(System.currentTimeMillis() + " ERR     " + msg);
-			writer_.write("Err     " + msg + "\n");
+			String s = System.currentTimeMillis() + " ERR     " + msg;
+			writer_.write(s);
 			writer_.flush();
+			System.err.println(s);
 		}
 		catch (Exception e) {}
 	}

@@ -19,7 +19,7 @@ public class RemoteGame extends Game
 	{
 		// only advance the snakes
 		for (Snake s : snakes_)
-			s.advance();
+			s.advance(this);
 	}
 
 }

@@ -1,5 +1,6 @@
 package org.paulpell.miam.gui;
 
+import java.awt.Event;
 import java.awt.KeyEventDispatcher;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -23,7 +24,8 @@ public class MainKeyDispatcher implements KeyEventDispatcher
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e)
 	{
-		KeyListener kl = control_.whoShouldReceiveKeyEvents();
+		boolean ctrl = 0 != (e.getModifiers() & Event.CTRL_MASK); 
+		KeyListener kl = control_.whoShouldReceiveKeyEvents(ctrl);
 		if (null != kl)
 		{
 			KeyStroke ks = KeyStroke.getKeyStrokeForEvent(e);

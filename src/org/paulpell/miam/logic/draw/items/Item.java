@@ -2,7 +2,7 @@ package org.paulpell.miam.logic.draw.items;
 
 import javax.swing.ImageIcon;
 
-import org.paulpell.miam.geom.GeometricObject;
+import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Game;
@@ -22,12 +22,12 @@ public abstract class Item extends Drawable
 {
 	
 	
-	protected GeometricObject shape_;
+	protected Rectangle shape_;
 	protected Pointd position_;
 	protected int effectDuration_; // for lasting effects
 	
 	
-	public GeometricObject getShape()
+	public Rectangle getShape()
 	{
 		return shape_;
 	}
@@ -69,7 +69,7 @@ public abstract class Item extends Drawable
 	public abstract Object clone(Game g);
 
 	// used by slave game to create fake items
-	public abstract Item newItem(double x, double y, Game game);
+	public abstract Item newItem(double x, double y);
 	
 	// one step of duration, returns true when it's finished
 	public abstract boolean effectStep(Snake s);

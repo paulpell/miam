@@ -57,12 +57,12 @@ public class EditorCircle extends EditorDisplayElement
 			double dy = where.y_ - selectedPoint_.y_;
 			Vector2D dv = new Vector2D(dx, dy);
 			shape_ = c.translate(dv);
-			selectedPoint_ = where;
 		}
 		else
 		{
 			c.radius_ = Arith.dist(where, c.position_);
 		}
+		selectedPoint_ = where;
 	}
 
 }

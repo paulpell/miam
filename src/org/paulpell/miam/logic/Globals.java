@@ -13,6 +13,8 @@ public class Globals {
 	public static boolean CLASSIC_DEBUG = false;
 
 	public static int FPS = 25;
+	public static int FPS_MIN = 5;
+	public static int FPS_MAX = 30;
 	
 	
 	

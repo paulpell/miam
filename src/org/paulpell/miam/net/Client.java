@@ -13,9 +13,9 @@ import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.logic.actions.SnakeAction;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.snakes.Snake;
+import org.paulpell.miam.logic.gameactions.SnakeAction;
 import org.paulpell.miam.logic.levels.Level;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 

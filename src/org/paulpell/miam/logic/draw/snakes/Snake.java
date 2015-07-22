@@ -16,6 +16,7 @@ import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Vector2D;
 import org.paulpell.miam.logic.Arith;
 import org.paulpell.miam.logic.Constants;
+import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.GameSettings;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.draw.Drawable;
@@ -478,7 +479,7 @@ public class Snake extends Drawable
 	 * This function also handles the items. It finally calls computeHull().
 	 * 
 	 */
-	public void advance()
+	public void advance(Game game)
 	{
 		
 		// Handle the items; works since Snake receives items after advancing 
@@ -489,7 +490,7 @@ public class Snake extends Drawable
 			wantUseSpecial_ = false;
 			if (specialItem_ != null)
 			{
-				if (specialItem_.activate(this))
+				if (specialItem_.activate(this, game))
 				{
 					specialItem_ = null;
 					specialItemChanged_ = true; // since we removed it

@@ -1,8 +1,11 @@
 package org.paulpell.miam.net;
 
 
+import java.util.Vector;
+
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.GameSettings;
+import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.walls.Wall;
 import org.paulpell.miam.logic.levels.Level;
 
@@ -18,23 +21,12 @@ public class LevelEncoder
 		
 		// first compute total length in bytes.. not optimal..
 		int byteslen = 0;
-		//encoded += new String(NetMethods.int2bytes(wallLen)) + wallStr;
-		
-				
-		
-		//String encoded = "";
 		
 		GameSettings settings = level.getGameSettings();
 		
 		
 		// first, general settings: snake speed, classic mode?
-		/*encoded += settings.classicMode_ ? '1' : '0';
-		encoded += new String(NetMethods.int2bytes(settings.snakeSpeed_));
-		encoded += settings.useWideSnakes_ ? '1' : '0';
-		encoded += new String(NetMethods.int2bytes(settings.numberOfSnakes_));
-		encoded += new String(NetMethods.int2bytes(settings.snakeExtraSpeedup_));
-		encoded += new String(NetMethods.int2bytes(settings.snakeAngleSpeedFactor_));
-		*/
+		
 		byteslen += 18; // 18 bytes for gameSettings
 		
 		// then snake start positions
@@ -43,10 +35,6 @@ public class LevelEncoder
 			Pointd p = level.getSnakeStartPosition(i);
 			byte[] pbs = NetMethods.point2bytes(p);
 			byteslen += 5 + pbs.length; // 5: 1 for total length, 4 for start angle
-			//int a = level.getSnakeStartAngle(i);
-			//String e = new String(NetMethods.int2bytes(a));
-			//e += NetMethods.point2str(p);
-			//encoded += (char)e.length() + e;
 		}
 
 		// and wall
@@ -55,20 +43,30 @@ public class LevelEncoder
 		int wallLen = wallBytes.length;
 		byteslen += wallLen + 4; // 4 to encode the wall length itself
 		
+		Vector <Item> items = level.getInitialItems();
+		int itemsLen = 0;
+		byte[] tempItemBuffer = new byte[512 * items.size()];
+		for (Item i : items)
+		{
+			byte[] enc = ItemEncoder.encodeItem(i);
+			assert enc.length <= (0xFF & Byte.MAX_VALUE) : "Too big item";
+			tempItemBuffer[itemsLen] = (byte)enc.length;
+			NetMethods.setSubBytes(enc, tempItemBuffer, itemsLen + 1, itemsLen + 1 + enc.length);
+			itemsLen += 1 + enc.length;
+		}
+		
+		byteslen += itemsLen + 1;
+		
 		byte[] encoded = new byte[byteslen];
 		
 		encoded[0] = (byte) (settings.classicMode_ ? 1 : 0);
-		//encoded += new String(NetMethods.int2bytes(settings.snakeSpeed_));
 		byte[] gen = NetMethods.int2bytes(settings.snakeSpeed_);
 		NetMethods.setSubBytes(gen, encoded, 1, 5);
 		encoded[5] = (byte) (settings.useWideSnakes_ ? 1 : 0);
-//		encoded += new String(NetMethods.int2bytes(settings.numberOfSnakes_));
 		gen = NetMethods.int2bytes(settings.numberOfSnakes_);
 		NetMethods.setSubBytes(gen, encoded, 6, 10);
-//		encoded += new String(NetMethods.int2bytes(settings.snakeExtraSpeedup_));
 		gen = NetMethods.int2bytes(settings.snakeExtraSpeedup_);
 		NetMethods.setSubBytes(gen, encoded, 10, 14);
-//		encoded += new String(NetMethods.int2bytes(settings.snakeAngleSpeedFactor_));
 		gen = NetMethods.int2bytes(settings.snakeAngleSpeedFactor_);
 		NetMethods.setSubBytes(gen, encoded, 14, 18);
 		
@@ -86,12 +84,17 @@ public class LevelEncoder
 			index += len + 1;
 		}
 		
-		if (index + 4 + wallLen != encoded.length)
-			throw new IllegalArgumentException("BAD BAD");
 		
 		NetMethods.setSubBytes(NetMethods.int2bytes(wallLen), encoded, index, index + 4);
 		NetMethods.setSubBytes(wallBytes, encoded, index + 4, index + 4 + wallLen);
+
+		assert items.size() <= (0xFF & Byte.MAX_VALUE) : "Too many items!";
+		encoded[index + 4 + wallLen] = (byte)items.size();
 		
+		NetMethods.setSubBytes(tempItemBuffer, encoded, index + 5 + wallLen, byteslen);
+
+		if (index + 4 + wallLen + 1 + itemsLen != encoded.length)
+			throw new IllegalArgumentException("BAD BAD");
 		
 		return encoded;
 	}
@@ -138,6 +141,19 @@ public class LevelEncoder
 		String wallStr = new String(NetMethods.getSubBytes(encoded, index + 4, index + 4 + wallLen));
 		Wall wall = WallEncoder.decodeWall(wallStr);
 		level.setWall(wall);
+		
+		index += 5 + wallLen;
+		int itemsNum = 0xFF & encoded[index - 1];
+		Vector <Item> items = new Vector <Item> ();
+		for (int i=0; i<itemsNum; ++i)
+		{
+			int itemLen = 0xFF & encoded[index];
+			byte[] itembs = NetMethods.getSubBytes(encoded, index + 1, index + 1 + itemLen);
+			items.add(ItemEncoder.decodeItem(itembs)); ///, game));
+			index += 1 + itemLen;
+		}
+		
+		level.setInitialItems(items);
 		
 		
 		//RemoteGame game = new RemoteGame(control, level);

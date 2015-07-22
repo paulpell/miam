@@ -11,39 +11,20 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Vector;
 
 import javax.swing.JPanel;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Arith;
+import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Control;
+import org.paulpell.miam.logic.Fonts;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.particles.VictoryParticleAnimation;
 import org.paulpell.miam.logic.draw.particles.VictoryParticleAnimator;
 import org.paulpell.miam.logic.draw.snakes.Snake;
-
-
-class GameMessage
-{
-	final String msg_;
-	long ttl_; // [ms], how long it is displayed
-	
-	protected  GameMessage(String message, long ttl)
-	{
-		msg_ = message;
-		ttl_ = ttl;
-	}
-	
-	// 5 seconds ttl constructor
-	protected GameMessage(String message)
-	{
-		this (message, 5000);
-	}
-}
-
 
 @SuppressWarnings("serial")
 public class GamePanel extends AbstractDisplayPanel
@@ -51,36 +32,27 @@ public class GamePanel extends AbstractDisplayPanel
 	
 	Control control_;
 	
-	//JPanel infoPanel_;
 	GameInfoPanel infoPanel_;
 	JPanel snakeInfoPanels_;
 	DrawImagePanel imagePanel_;
-	static Font bigFont_;
-	static Font normalFont_;
+	
+	MessagePainter msgPainter_;
 
 	// flags for drawing stuff
-	boolean pause_ = false;
+	boolean paintPause_ = false;
 	boolean pauseWasDrawn_ = false;
-	boolean gameover_ = false;
+	boolean paintGameover_ = false;
 	boolean gameoverWasDrawn_ = false;
-	boolean victory_ = false;
+	boolean paintVictory_ = false;
 	boolean victoryWasDrawn_ = false;
 	int victoryStartx_ = 120;
 	int victoryStarty_ = 150;
 	int victoryStartDelta_ = 150;
 	
-	//BufferedImage staticVictoryImage_ = null;
-	
 	BufferedImage image_;
 	
 	Vector<Color> victoryColors_;
 	
-	LinkedList <GameMessage> messages_;
-	long lastMessageTime_;
-	
-	
-
-	//Vector <VictoryParticleAnimation> particleAnims_;
 	VictoryParticleAnimator particleAnimator_;
 
 	public GamePanel(Control control)
@@ -89,10 +61,8 @@ public class GamePanel extends AbstractDisplayPanel
 		
 		control_ = control;
 
-		messages_ = new LinkedList <GameMessage> ();
-		lastMessageTime_ = System.currentTimeMillis();
-
-		
+		msgPainter_ = new MessagePainter(15, Constants.DEFAULT_IMAGE_HEIGHT - 15, -15);
+	
 		setLayout(new BorderLayout());
 		
 		imagePanel_ = new DrawImagePanel();
@@ -115,14 +85,14 @@ public class GamePanel extends AbstractDisplayPanel
 	
 	public void setPause(boolean pause)
 	{
-		pause_ = pause;
+		paintPause_ = pause;
 		pauseWasDrawn_ = false;
 		repaint();
 	}
 	
 	public void setGameover(boolean b)
 	{
-		gameover_ = b;
+		paintGameover_ = b;
 		gameoverWasDrawn_ = false;
 		repaint();
 	}
@@ -135,19 +105,18 @@ public class GamePanel extends AbstractDisplayPanel
 	{
 		
 		boolean shouldRedraw =
-				(!victory_ && !pause_ && !gameover_) // normal mode
+				(!paintVictory_ && !paintPause_ && !paintGameover_) // normal mode
 				|| !isValid()
-				|| (victory_ && !victoryWasDrawn_)
-				|| (gameover_ && !gameoverWasDrawn_)
-				|| (pause_ && !pauseWasDrawn_)
+				|| (paintVictory_ && !victoryWasDrawn_)
+				|| (paintGameover_ && !gameoverWasDrawn_)
+				|| (paintPause_ && !pauseWasDrawn_)
 				;
 		
 		BufferedImage image;
 		Graphics2D imGr;
 		int width = getWidth();
 		int height = getHeight();
-		if (width == 0 && height == 0)
-			System.out.println("all 0");
+
 		if (shouldRedraw)
 		{
 			// re-create a new buffered image
@@ -157,11 +126,11 @@ public class GamePanel extends AbstractDisplayPanel
 			imGr = image.createGraphics();
 			imGr.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 	
-			if (bigFont_ == null)
+			if (Fonts.bigFont_ == null)
 			{
 				Font font = imGr.getFont();
-				normalFont_ = font;
-				bigFont_ = font.deriveFont(font.getSize2D() * 4);
+				Fonts.normalFont_ = font;
+				Fonts.bigFont_ = font.deriveFont(font.getSize2D() * 4);
 			}
 			
 			// background
@@ -173,9 +142,9 @@ public class GamePanel extends AbstractDisplayPanel
 				e.next().draw(imGr);
 
 
-			if (gameover_)
+			if (paintGameover_)
 			{
-				imGr.setFont(bigFont_);
+				imGr.setFont(Fonts.bigFont_);
 				imGr.setColor(new Color(255,20,30));
 				int x = 120;
 				imGr.drawString("GAME OVER...", x, 200);
@@ -183,9 +152,9 @@ public class GamePanel extends AbstractDisplayPanel
 				imGr.drawString("ESC to main menu", x, 400);
 				gameoverWasDrawn_ = true;
 			}
-			else if (pause_)
+			else if (paintPause_)
 			{
-				imGr.setFont(bigFont_);
+				imGr.setFont(Fonts.bigFont_);
 				int pausex = width / 4;
 				int pausey = height / 2 - 100;
 				for (int i=0; i < 5; i++)
@@ -208,11 +177,11 @@ public class GamePanel extends AbstractDisplayPanel
 		
 		
 		// draw appropriate text if needed
-		if (victory_)
+		if (paintVictory_)
 		{
 			victoryWasDrawn_ = true;
 
-			imGr.setFont(bigFont_);
+			imGr.setFont(Fonts.bigFont_);
 			int y = victoryStarty_;
 			for (Color c : victoryColors_)
 			{
@@ -229,7 +198,7 @@ public class GamePanel extends AbstractDisplayPanel
 		
 			particleAnimator_.drawParticles(imGr);
 		}
-		/*else if (gameover_)
+		/*else if (paintGameover_)
 		{
 			imGr.setFont(bigFont_);
 			imGr.setColor(new Color(255,20,30));
@@ -238,7 +207,7 @@ public class GamePanel extends AbstractDisplayPanel
 			imGr.drawString("Space for new", x, 300);
 			imGr.drawString("ESC to main menu", x, 400);
 		}
-		/*else if (pause_)
+		/*else if (paintPause_)
 		{
 			imGr.setFont(bigFont_);
 			int pausex = width / 4;
@@ -252,25 +221,7 @@ public class GamePanel extends AbstractDisplayPanel
 		*/
 		
 		// and display messages
-		long delay = System.currentTimeMillis() - lastMessageTime_;
-		int msgy = height - 100;
-		int msgx = 15;
-		imGr.setColor(new Color(200,200,0));
-		imGr.setFont(normalFont_);
-		for (GameMessage m : messages_)
-		{
-			if (m.ttl_ <= 0)
-				messages_.remove(m);
-			else
-			{
-				m.ttl_ -= delay;
-				imGr.drawString(m.msg_, msgx, msgy);
-				msgy -= 15;
-			}
-		}
-
-		lastMessageTime_ = System.currentTimeMillis();
-		
+		msgPainter_.paintMessages(imGr);
 
 		
 		// good. Now we can really paint
@@ -290,12 +241,12 @@ public class GamePanel extends AbstractDisplayPanel
 	@Override
 	public void displayMessage(String message)
 	{
-		messages_.add(new GameMessage(message));
+		msgPainter_.addMessage(message);
 	}
 
 	public void setVictoryColors(Vector<Color> colors)
 	{
-		victory_ = true;
+		paintVictory_ = true;
 		victoryWasDrawn_ = false;
 		victoryColors_ = colors;
 		
@@ -329,9 +280,9 @@ public class GamePanel extends AbstractDisplayPanel
 	
 	public void stopVictoryColors()
 	{
-		if (victory_)
+		if (paintVictory_)
 			particleAnimator_.stopAnimation();
-		victory_ = false;
+		paintVictory_ = false;
 	}
 
 	public void displayActualFPS(int fps)

@@ -125,4 +125,10 @@ public class Arrow extends GeometricObject
 		return new Arrow(dv.add(p1_), angle_);
 	}
 
+	@Override
+	public GeometricObject clone()
+	{
+		return new Arrow(p1_.clone(), p2_.clone());
+	}
+
 }

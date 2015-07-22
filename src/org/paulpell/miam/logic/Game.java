@@ -65,9 +65,14 @@ public class Game
 
 			Snake s = null;
 			if (mode == GameModesEnum.CLASSIC)
-				s = new ClassicSnake(id, settings, x, y, a);
+			{
+				int a2 = Arith.classicDirFromDegrees(a);
+				s = new ClassicSnake(id, settings, x, y, a2);
+			}
 			else if (mode == GameModesEnum.MODERN)
+			{
 				s = new Snake(id, settings, x, y, a);
+			}
 			else
 				throw new IllegalArgumentException("Unacceptable game mode!");
 			
@@ -144,7 +149,7 @@ public class Game
 		for (Enumeration<Snake> e = snakes_.elements(); e.hasMoreElements();)
 		{
 			Snake s = e.nextElement();
-			s.advance();
+			s.advance(this);
 		}
 		
 		final Wall wall = level_.getWall();
@@ -191,7 +196,9 @@ public class Game
 				}
 			}
 			
-			// check victory
+			// check victory:
+			// this way, a dead snake can win, ie.
+			// a sacrifice is worth it
 			Vector <VictoryCondition> vcs = level_.getVictoryConditions(); 
 			boolean snakeWon = vcs.size() > 0;
 			for (VictoryCondition vc : vcs)

@@ -1,5 +1,6 @@
 package org.paulpell.miam.logic.draw.items;
 
+import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
@@ -15,7 +16,7 @@ public abstract class SpecialItem extends Item
 	
 	// When the snake uses its special item.
 	// return true if the object is consumed (not usable again)
-	public abstract boolean activate(Snake s);
+	public abstract boolean activate(Snake s, Game g);
 	
 
 	public boolean effectStep(Snake s){ return true;} // no lasting effect, normally

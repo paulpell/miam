@@ -58,9 +58,12 @@ public class MainFrame
 		
 		control_ = control;
 
-		//setUndecorated(true);
+		setUndecorated(true);
 		
-		GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+		GraphicsDevice gd =
+				GraphicsEnvironment
+				.getLocalGraphicsEnvironment()
+				.getDefaultScreenDevice();
 		int screenwidth = gd.getDisplayMode().getWidth();
 		int screenheight = gd.getDisplayMode().getHeight();
 		int appearx = (screenwidth - Constants.DEFAULT_IMAGE_WIDTH) / 2;
@@ -110,7 +113,7 @@ public class MainFrame
 
 	public void showSettings()
 	{
-		if (null == settingsPanel_)
+		//if (null == settingsPanel_)
 			settingsPanel_ = new SettingsPanel(control_);
 		
 		isTopPanelVisible_ = true;

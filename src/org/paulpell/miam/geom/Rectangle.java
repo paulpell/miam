@@ -25,25 +25,36 @@ public class Rectangle extends GeometricObject
 	private Segment[] segments_;
 	private double width_;
 	private double height_;
+	private boolean fill_;
+	
+	public Rectangle(double x, double y, double w, double h, boolean fill)
+	{
+		init(x, y, w, h, fill);
+	}
 	
 	public Rectangle(double x, double y, double w, double h)
 	{
-		init(x, y, w, h);
+		init(x, y, w, h, false);
 	}
 	
-	public Rectangle(Pointd p1, Pointd p2)
+	public Rectangle(Pointd p1, Pointd p2, boolean fill)
 	{
 		double x = Arith.mind(p1.x_, p2.x_);
 		double y = Arith.mind(p1.y_, p2.y_);
 		double w = Arith.absd(p1.x_ - p2.x_);
 		double h = Arith.absd(p1.y_ - p2.y_);
-		init(x, y, w, h);
+		init(x, y, w, h, fill);
 	}
 	
-	private void init(double x, double y, double w, double h)
+	private void init(double x, double y, double w, double h, boolean fill)
 	{
-		if (w <= 0 || h <= 0)
-			throw new IllegalArgumentException("Width ("+w+") and height ("+h+") cannot be 0");
+		//if (w <= 0 || h <= 0)
+		//	throw new IllegalArgumentException("Width ("+w+") and height ("+h+") cannot be 0");
+		if (w <= 0)
+			w = 1;
+		
+		if (h <= 0)
+			h = 1;
 		
 		width_ = w;
 		height_ = h;
@@ -59,6 +70,7 @@ public class Rectangle extends GeometricObject
 				  new Segment(p3_, p2_),
 				  new Segment(p2_, p4_),
 				  new Segment(p4_, p1_)};
+		fill_ = fill;
 	}
 	
 	public Pointd getP1()
@@ -159,7 +171,10 @@ public class Rectangle extends GeometricObject
 	@Override
 	public void draw(Graphics2D g)
 	{
-		g.fillRect((int)p1_.x_, (int)p1_.y_, (int)width_, (int)height_);
+		if (fill_)
+			g.fillRect((int)p1_.x_, (int)p1_.y_, (int)width_, (int)height_);
+		else
+			g.drawRect((int)p1_.x_, (int)p1_.y_, (int)width_, (int)height_);
 	}
 
 	@Override
@@ -190,7 +205,18 @@ public class Rectangle extends GeometricObject
 	public GeometricObject translate(Vector2D dv)
 	{
 		Pointd p = dv.add(p1_);
-		return new Rectangle(p.x_, p.y_, width_, height_);
+		return new Rectangle(p.x_, p.y_, width_, height_, fill_);
+	}
+	
+	public boolean isFilled()
+	{
+		return fill_;
+	}
+
+	@Override
+	public GeometricObject clone()
+	{
+		return new Rectangle(p1_.clone(), p2_.clone(), fill_);
 	}
 
 }

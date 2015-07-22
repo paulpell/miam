@@ -12,6 +12,8 @@ public class Constants
 	public final static double EPSILON = .005;
 	
 	
+	public final static String LEVEL_FOLDER = "saves";
+	
 	
 	// reserved keys
 	private static final int[] RESERVED_KEYS = {

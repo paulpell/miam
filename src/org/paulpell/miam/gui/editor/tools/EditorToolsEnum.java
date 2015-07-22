@@ -6,22 +6,20 @@ import java.awt.event.ActionListener;
 import javax.swing.Icon;
 import javax.swing.JToggleButton;
 
-import org.paulpell.miam.gui.editor.LevelEditor;
 import org.paulpell.miam.logic.draw.items.AllTheItems;
+import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 public enum EditorToolsEnum
 {
-	NONE ("NONE", null),
+	HAND("Hand", null),
 	LINE ("Line", null),
 	CIRCLE("Circle", null),
 	RECTANGLE("Rectangle", null),
-	HAND("Hand", null),
 	SCORE("Score", AllTheItems.getImageIcon(AllTheItems.INDEX_SCORE)),
 	BANANA("Banana", AllTheItems.getImageIcon(AllTheItems.INDEX_BANANA)),
 	BANANA_SP("Banana special", AllTheItems.getImageIcon(AllTheItems.INDEX_BANANA_SPECIAL)),
 	LIGHTNING("Lightning", AllTheItems.getImageIcon(AllTheItems.INDEX_LIGHTNING)),
 	REVERSE("Reverse", AllTheItems.getImageIcon(AllTheItems.INDEX_REVERSO))
-	//ARROW("Snake start")
 	;
 	
 	public final String name_;
@@ -33,7 +31,7 @@ public enum EditorToolsEnum
 		icon_ = icon;
 	}
 	
-	public JToggleButton createToggleButton(final LevelEditor editor)
+	public JToggleButton createToggleButton(final LevelEditorControl leControl)
 	{
 		JToggleButton b;
 		if (icon_ == null)
@@ -41,14 +39,15 @@ public enum EditorToolsEnum
 		else
 			b = new JToggleButton(icon_);
 		
-		b.addActionListener(new ActionListener() {
-			
+		b.addActionListener(new ActionListener()
+		{	
 			@Override
 			public void actionPerformed(ActionEvent arg0)
 			{
-				editor.setTool(EditorToolsEnum.this);
+				leControl.setTool(EditorToolsEnum.this);
 			}
 		});
 		return b;
 	}
 }
+

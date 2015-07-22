@@ -4,15 +4,15 @@ package org.paulpell.miam.net;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.logic.actions.EndSpeedupAction;
-import org.paulpell.miam.logic.actions.EndTurnLeftAction;
-import org.paulpell.miam.logic.actions.EndTurnRightAction;
-import org.paulpell.miam.logic.actions.SnakeAction;
-//import org.paulpell.miam.logic.actions.StartAction;
-import org.paulpell.miam.logic.actions.StartSpeedupAction;
-import org.paulpell.miam.logic.actions.StartTurnLeftAction;
-import org.paulpell.miam.logic.actions.StartTurnRightAction;
-import org.paulpell.miam.logic.actions.UseSpecialAction;
+//import org.paulpell.miam.logic.gameactions.StartAction;
+import org.paulpell.miam.logic.gameactions.EndSpeedupAction;
+import org.paulpell.miam.logic.gameactions.EndTurnLeftAction;
+import org.paulpell.miam.logic.gameactions.EndTurnRightAction;
+import org.paulpell.miam.logic.gameactions.SnakeAction;
+import org.paulpell.miam.logic.gameactions.StartSpeedupAction;
+import org.paulpell.miam.logic.gameactions.StartTurnLeftAction;
+import org.paulpell.miam.logic.gameactions.StartTurnRightAction;
+import org.paulpell.miam.logic.gameactions.UseSpecialAction;
 
 public class ActionEncoder
 {

@@ -28,7 +28,7 @@ public class Segment extends Line
 			double dy2 = p1_.y_ - p2_.y_;
 			
 			if (Arith.equalsd(0, dy2))
-				throw new UnsupportedOperationException("Segment: p1_ equals p2_!!");
+				throw new UnsupportedOperationException("Segment: pSel1_ equals pSel2_!!");
 
 			t = dy1 / dy2;
 			if (t >= 0 
@@ -185,7 +185,7 @@ public class Segment extends Line
 		Line other = new Line(p, getNormal());
 		Line me = new Line(p1_, p2_);
 		Pointd i = me.intersect(other);
-		if (isPointColinear(i))
+		if (isPointInside(i))
 			return Arith.dist(p, i);
 		return Arith.mind(Arith.dist(p, p1_), Arith.dist(p, p2_));
 	}
@@ -201,6 +201,12 @@ public class Segment extends Line
 	public GeometricObject translate(Vector2D dv)
 	{
 		return new Segment(dv.add(p1_), dv.add(p2_));
+	}
+	
+	@Override
+	public GeometricObject clone()
+	{
+		return new Segment(p1_.clone(), p2_.clone());
 	}
 	
 	public String toString()

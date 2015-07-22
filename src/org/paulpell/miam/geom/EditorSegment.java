@@ -51,6 +51,7 @@ public class EditorSegment extends EditorDisplayElement
 			shape_ = new Segment(where, p2);
 		else
 			shape_ = new Segment(p1, where);
+		selectedPoint_ = where;
 	}
 
 }

@@ -55,7 +55,7 @@ public class Line extends GeometricObject
 		return p2_;
 	}
 
-	// linear, t=0 returns p1_ and t=1, p2_
+	// linear, t=0 returns pSel1_ and t=1, pSel2_
 	public Pointd getPointOn(double t)
 	{
 		double x = t * (p2_.x_ - p1_.x_) + p1_.x_;
@@ -136,12 +136,12 @@ public class Line extends GeometricObject
 		/*java.awt.Rectangle clipRect = g.getClipBounds();
 		if (isHorizontal_)
 		{
-			int y = (int)p1_.y_;
+			int y = (int)pSel1_.y_;
 			g.drawLine(0, y, clipRect.width, y);
 		}
 		else if (isVertical_)
 		{
-			int y = (int)p1_.y_;
+			int y = (int)pSel1_.y_;
 			g.drawLine(y, 0, y, clipRect.width);
 		}
 		else
@@ -190,6 +190,13 @@ public class Line extends GeometricObject
 	public GeometricObject translate(Vector2D dv)
 	{
 		return new Line(dv.add(p1_), v_);
+	}
+
+
+	@Override
+	public GeometricObject clone()
+	{
+		return new Line(p1_.clone(), p2_.clone());
 	}
 
 }

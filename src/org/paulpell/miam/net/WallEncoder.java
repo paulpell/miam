@@ -93,6 +93,8 @@ public class WallEncoder
 	
 	private static WallElement decodeRectangle(Color color, String l)
 	{
+		boolean fill = l.charAt(0) == '1';
+		l = l.substring(1);
 		String[] ss = l.split(":");
 		Pointd p1 = NetMethods.bytes2point(ss[0].getBytes());
 		Pointd p2 = NetMethods.bytes2point(ss[1].getBytes());
@@ -100,7 +102,7 @@ public class WallEncoder
 		double w = p2.x_ - p1.x_;
 		double h = p2.y_ - p1.y_;
 		
-		Rectangle rect = new Rectangle(p1.x_, p1.y_, w, h);
+		Rectangle rect = new Rectangle(p1.x_, p1.y_, w, h, fill);
 		
 		return new WallElement(rect, color);
 		
@@ -142,7 +144,8 @@ public class WallEncoder
 	{
 		String p1str = new String(NetMethods.point2bytes(r.getP1()));
 		String p2str = new String(NetMethods.point2bytes(r.getP2()));
-		return 'r' + p1str + ":" + p2str;
+		char fill = r.isFilled() ? '1' : '0';
+		return "r" + fill + p1str + ":" + p2str;
 	}
 	
 	private static String encodeWallElement(Circle c)

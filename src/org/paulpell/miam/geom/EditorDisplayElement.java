@@ -53,5 +53,24 @@ public abstract class EditorDisplayElement
 		
 		throw new IllegalArgumentException("Cannot create display element");
 	}
+	
+	public final EditorDisplayElement clone()
+	{
+		EditorDisplayElement cloned;
+		int r = color_.getRed();
+		int g = color_.getGreen();
+		int b = color_.getBlue();
+		int a = color_.getAlpha();
+		Color c = new Color(r, g, b, a);
+		
+		if (this instanceof EditorItem)
+			cloned = new EditorItem(c, ((EditorItem)this).getItem());
+		else
+		{
+			GeometricObject go= shape_.clone();
+			cloned = EditorDisplayElement.createElement(go, c, isWallElement_);
+		}
+		return cloned;
+	}
 
 }
