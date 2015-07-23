@@ -94,7 +94,8 @@ public class Game
 		return snakes_;
 	}
 	
-	public Vector<Item> getItems() {
+	public Vector<Item> getItems()
+	{
 		return items_;
 	}
 	
@@ -145,12 +146,17 @@ public class Game
 		if (aliveSnakes_ == 0)
 			control_.endGame();
 		
+		
 		// advance the snakes
+
+		String pos = "Posdir";
 		for (Enumeration<Snake> e = snakes_.elements(); e.hasMoreElements();)
 		{
 			Snake s = e.nextElement();
 			s.advance(this);
+			pos += s.getId() + ": " + s.getHead()+ ";" + s.getDirection() + "|";
 		}
+		Log.logMsg(pos);
 		
 		final Wall wall = level_.getWall();
 		Pointd collision;

@@ -11,6 +11,6 @@ import org.paulpell.miam.logic.levels.LevelEditorControl;
  */
 public interface UndoableAction
 {
-	public void doAction(LevelEditorControl lec);
-	public void undoAction(LevelEditorControl lec);
+	public void doAction();
+	public void undoAction();
 }

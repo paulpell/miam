@@ -9,6 +9,7 @@ public class Arrow extends GeometricObject
 	Pointd p1_;
 	Pointd p2_;
 	double angle_;
+	double length_;
 	Segment[] segments_;
 	
 	// angle in radians
@@ -16,21 +17,23 @@ public class Arrow extends GeometricObject
 	{
 		p1_ = p;
 		double angle = Arith.dirModern(p, p2) * Math.PI / 180.;
-		init(p2, angle);
+		double length = Arith.dist(p, p2);
+		init(p2, angle, length);
 	}
 	
-	public Arrow(Pointd p, double angle)
+	public Arrow(Pointd p, double angle, double length)
 	{
 		p1_ = p;
-		Vector2D v1 = new Vector2D(20, 0).rotate(angle);
+		Vector2D v1 = new Vector2D(length, 0).rotate(angle);
 		Pointd p2 = v1.add(p1_);
-		init(p2, angle);
+		init(p2, angle, length);
 	}
 	
-	private void init(Pointd p2, double angle)
+	private void init(Pointd p2, double angle, double length)
 	{
 		p2_ = p2;
 		angle_ = angle;
+		length_ = length;
 		
 		Vector2D v2 = new Vector2D(-5,  5).rotate(angle);
 		Vector2D v3 = new Vector2D(-5, -5).rotate(angle);
@@ -122,13 +125,13 @@ public class Arrow extends GeometricObject
 	@Override
 	public GeometricObject translate(Vector2D dv)
 	{
-		return new Arrow(dv.add(p1_), angle_);
+		return new Arrow(dv.add(p1_), angle_, length_);
 	}
 
 	@Override
-	public GeometricObject clone()
+	public Arrow clone()
 	{
-		return new Arrow(p1_.clone(), p2_.clone());
+		return new Arrow(p1_.clone(), angle_, length_);
 	}
 
 }

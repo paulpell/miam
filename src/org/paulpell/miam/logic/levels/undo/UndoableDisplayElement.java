@@ -1,28 +1,33 @@
 package org.paulpell.miam.logic.levels.undo;
 
+import java.util.Collection;
+
 import org.paulpell.miam.geom.EditorDisplayElement;
-import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 public class UndoableDisplayElement implements UndoableAction
 {
 
 	EditorDisplayElement ede_;
+	Collection <EditorDisplayElement> edes_;
 	
-	public UndoableDisplayElement(EditorDisplayElement ede)
+	public UndoableDisplayElement(EditorDisplayElement ede, Collection <EditorDisplayElement> edes)
 	{
 		ede_ = ede;
+		edes_ = edes;
 	}
 
 	@Override
-	public void doAction(LevelEditorControl lec)
+	public void doAction()
 	{
-		lec.addDisplayElement(ede_);
+		boolean add = edes_.add(ede_);
+		assert add : "Bad doAction : did not add element";
 	}
 
 	@Override
-	public void undoAction(LevelEditorControl lec)
+	public void undoAction()
 	{
-		lec.removeDisplayElement(ede_);
+		boolean add = edes_.remove(ede_);
+		assert add : "Bad undoAction : did not remove element";
 	}
 
 }

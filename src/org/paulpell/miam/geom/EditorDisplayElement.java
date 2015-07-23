@@ -65,6 +65,11 @@ public abstract class EditorDisplayElement
 		
 		if (this instanceof EditorItem)
 			cloned = new EditorItem(c, ((EditorItem)this).getItem());
+		else if (this instanceof EditorArrow)
+		{
+			Arrow arr = ((EditorArrow)this).arrow_.clone();
+			cloned = new EditorArrow(arr, c);
+		}
 		else
 		{
 			GeometricObject go= shape_.clone();

@@ -327,8 +327,6 @@ public class Control
 			try
 			{
 				sendNetworkLevel();
-				for (Item i: game_.getItems())
-					gameClient_.sendItem(i);
 					
 				if (Globals.NETWORK_DEBUG)
 					Log.logMsg("Send START, id="+gameClient_.getServerId());
@@ -739,6 +737,7 @@ public class Control
 			{
 				stepString += new String(ActionEncoder.encodeAction(a));
 				a.perform(game_.getSnake(a.getSnakeIndex()));
+				Log.logErr("Action: " + a);
 			}
 			slaveActions_ = invalidActions;
 			if (Globals.ACTION_DEBUG)
@@ -1018,7 +1017,7 @@ public class Control
 		}
 	}
 	
-	public void stepGame(String stepString)
+	public void stepSlaveGame(String stepString)
 	{
 		if (null == game_)
 			return;

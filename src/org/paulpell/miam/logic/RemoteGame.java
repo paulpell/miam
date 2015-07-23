@@ -17,9 +17,14 @@ public class RemoteGame extends Game
 	@Override
 	public void update()
 	{
+		String pos = "Pos";
 		// only advance the snakes
 		for (Snake s : snakes_)
+		{
 			s.advance(this);
+			pos += s.getId() + ": " + s.getHead()+ ";" + s.getDirection() + "|";
+		}
+		Log.logMsg(pos);
 	}
 
 }

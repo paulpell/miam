@@ -174,7 +174,7 @@ public class Client
 			break;
 			
 		case GAME_STEP:
-			control_.stepGame(new String(payload));
+			control_.stepSlaveGame(new String(payload));
 			break;
 			
 		case ITEM_SPAWN:

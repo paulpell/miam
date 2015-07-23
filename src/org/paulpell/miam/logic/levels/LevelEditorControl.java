@@ -5,6 +5,7 @@ import java.awt.Frame;
 import java.awt.Graphics2D;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.util.Collection;
 import java.util.Vector;
 
 import javax.swing.JOptionPane;
@@ -88,7 +89,7 @@ public class LevelEditorControl
 	
 	private void reset()
 	{
-		undoManager_ = new UndoManager(this);
+		undoManager_ = new UndoManager();
 
 		msgPainter_ = new MessagePainter(15, height_ - 15, -15);
 		
@@ -168,7 +169,7 @@ public class LevelEditorControl
 		}
 
 		// TODO: encode in level? 
-		undoManager_ = new UndoManager(this);
+		undoManager_ = new UndoManager();
 		
 		drawImage();
 	}
@@ -252,7 +253,7 @@ public class LevelEditorControl
 		{
 			int a = level_.getSnakeStartAngle(i);
 			Pointd p = level_.getSnakeStartPosition(i);
-			Arrow arrow = new Arrow(p, Arith.deg2rad(a));
+			Arrow arrow = new Arrow(p, Arith.deg2rad(a), 20);
 			Color c = Snake.s_snakesColors[i];
 			EditorArrow pos = new EditorArrow(arrow, c);
 			startPositions_.add(pos);
@@ -267,15 +268,7 @@ public class LevelEditorControl
 		if (tool_ == EditorToolsEnum.HAND)
 		{
 			if (null != selectedElement_)
-			{
-				/*if (null == moveBackupElement_)
-				{
-					moveBackupElement_ = selectedElement_;
-					selectedElement_ = moveBackupElement_.clone();
-					displayElements_.remove(moveBackupElement_);
-				}*/
 				selectedElement_.move(p);
-			}
 		}
 		else if (null != firstPoint_)
 			mousePoint_ = p;
@@ -333,35 +326,13 @@ public class LevelEditorControl
 	{
 		firstPoint_ = null;
 		EditorDisplayElement ede = EditorDisplayElement.createElement(shape_, defaultElementColor_, true);
-		undoManager_.actionTaken(new UndoableDisplayElement(ede));
-	}
-	public void addDisplayElement(EditorDisplayElement ede)
-	{ 
-		displayElements_.add(ede);
-		drawImage();
-	}
-	public void removeDisplayElement(EditorDisplayElement ede)
-	{
-		boolean rem = displayElements_.remove(ede);
-		System.out.println("Removing (" + rem + ") disp elem: " + ede);
-		drawImage();
+		undoManager_.actionTaken(new UndoableDisplayElement(ede, displayElements_));
 	}
 	
 	private void addItemAction(Item i)
 	{
 		EditorItem ei = new EditorItem(selectedItemColor_, i);
-		undoManager_.actionTaken(new UndoableAddItem(ei));
-	}
-	
-	public void addItem(EditorItem ei)
-	{
-		items_.add(ei);
-		drawImage();
-	}
-	public void removeItem(EditorItem ei)
-	{
-		items_.remove(ei);
-		drawImage();
+		undoManager_.actionTaken(new UndoableAddItem(ei, items_));
 	}
 	
 	private void handleHandClick(Pointd where)
@@ -404,25 +375,20 @@ public class LevelEditorControl
 		{
 			selectedElement_ = selected.clone();
 			selectedElement_.select(where);
-			UndoableAction a = new UndoableMove(selectedElement_, selected);
+			UndoableAction a;
+			if ( selected instanceof EditorArrow )
+				a = new UndoableMove(selectedElement_, selected, startPositions_);
+			else if ( selected instanceof EditorItem )
+				a = new UndoableMove(selectedElement_, selected, items_);
+			else
+				a = new UndoableMove(selectedElement_, selected, displayElements_);
 			undoManager_.actionTaken(a);
-			//removeDisplayElement(selected);
-			//selectedElement_ = selected;
-			//selectedElement_.select(where);
-			//EditorDisplayElement backup = selectedElement_.clone();
-			//UndoableAction a = new UndoableMove(selectedElement_, backup);
-			//undoManager_.actionTaken(a); // adds selected to displayElements_
 		}
 	}
 	private void unselectElement()
 	{
 		if (null != selectedElement_)
 		{
-			/*if (null != moveBackupElement_)
-			{
-				UndoableAction a = new UndoableMove(selectedElement_, moveBackupElement_);
-				undoManager_.actionTaken(a);
-			}*/
 			selectedElement_.unselect();
 			selectedElement_ = null;
 		}
@@ -508,11 +474,13 @@ public class LevelEditorControl
 	public void onUndo()
 	{
 		undoManager_.undo();
+		drawImage();
 	}
 	
 	public void onRedo()
 	{
 		undoManager_.redo();
+		drawImage();
 	}
 	
 

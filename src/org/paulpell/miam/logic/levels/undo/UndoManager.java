@@ -1,6 +1,8 @@
 package org.paulpell.miam.logic.levels.undo;
 
-import org.paulpell.miam.logic.levels.LevelEditorControl;
+import java.util.Collection;
+
+import org.paulpell.miam.geom.EditorDisplayElement;
 
 /**
  * This class is responsible to maintain a list of actions.
@@ -11,15 +13,15 @@ import org.paulpell.miam.logic.levels.LevelEditorControl;
 public class UndoManager
 {
 
-	LevelEditorControl editorControl_;
 	
 	UndoableListNode first_;
 	UndoableListNode current_;
 	
 	
-	public UndoManager(LevelEditorControl lec)
+	
+	
+	public UndoManager()
 	{
-		editorControl_ = lec;
 		first_ = current_ = null;
 	}
 	
@@ -32,7 +34,7 @@ public class UndoManager
 	{
 		if (canUndo())
 		{
-			current_.getAction().undoAction(editorControl_);
+			current_.getAction().undoAction();
 			current_ = current_.prev_;
 		}
 	}
@@ -53,7 +55,7 @@ public class UndoManager
 				current_ = current_.next_;
 			else
 				current_ = first_;
-			current_.getAction().doAction(editorControl_);
+			current_.getAction().doAction();
 		}
 	}
 
@@ -69,6 +71,6 @@ public class UndoManager
 		{
 			current_ = current_.createNext(action); // removes all others after
 		}
-		action.doAction(editorControl_);
+		action.doAction();
 	}
 }

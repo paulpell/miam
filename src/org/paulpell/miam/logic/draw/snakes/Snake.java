@@ -776,15 +776,15 @@ public class Snake extends Drawable
 	{
 		return id_ + "," + x0_ + "," + y0_ + "," + direction_;
 	}
-
-	/* *
-	 * Returns the head of this snake.
-	 * @return the head of this snake
+	
+	/**
+	 * Return the direction towards which the snake is moving
+	 * @return the direction towards which the snake is moving
 	 */
-	/*@Override
-	public Pointd getPointd()
+	public int getDirection()
 	{
-		return getHead();
-	}*/
+		return direction_;
+	}
+
 
 }
