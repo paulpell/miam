@@ -10,7 +10,6 @@ import java.awt.image.BufferedImage;
 import javax.swing.JFrame;
 
 import org.paulpell.miam.gui.DrawImagePanel;
-import org.paulpell.miam.gui.MessagePainter;
 import org.paulpell.miam.gui.editor.tools.EditorToolsPanel;
 import org.paulpell.miam.logic.levels.LevelEditorControl;
 

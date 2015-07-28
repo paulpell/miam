@@ -1,14 +1,11 @@
 package org.paulpell.miam.gui.settings;
 
-import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -38,25 +35,15 @@ public class GeneralSettingsSubPanel extends JPanel
 		// ******************** FPS
 		GridBagConstraints c = new GridBagConstraints();
 		c.insets = new Insets(0, 0, 0, gapx);// 15 to give space for number
-		c.weightx = 1;
+		//c.weightx = 1;
 		c.gridx = 0;
 		c.gridy = 0;
 		c.anchor = GridBagConstraints.EAST;
-		//c.fill = GridBagConstraints.HORIZONTAL;
 		FPSLabel_ = new JLabel();
-		FPSLabel_.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.red));
 		add(FPSLabel_, c);
-		
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 1;
-		JLabel dummy = new JLabel();
-		dummy.setMinimumSize(new Dimension(15, 10));
-		//add(dummy, c);
 		
 		FPSSlider_ = new JSlider(Globals.FPS_MIN, Globals.FPS_MAX, Globals.FPS);
 		FPSSlider_.setPaintTicks(true);
-		FPSSlider_.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.red));
 		FPSSlider_.addChangeListener(new ChangeListener()
 		{	
 			@Override
@@ -75,7 +62,6 @@ public class GeneralSettingsSubPanel extends JPanel
 		
 		// ******************* classic mode
 		JLabel clModeLabel = new JLabel("Classic mode (square):");
-		clModeLabel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.red));
 		c = new GridBagConstraints();
 		c.weightx = 0;
 		c.gridx = 0;
@@ -83,13 +69,6 @@ public class GeneralSettingsSubPanel extends JPanel
 		c.anchor = GridBagConstraints.EAST;
 		c.insets = new Insets(0, 0, 0, gapx);
 		add(clModeLabel, c);
-		
-		c = new GridBagConstraints();
-		c.gridx = 1;
-		c.gridy = 1;
-		JLabel dummy2 = new JLabel();
-		dummy2.setMinimumSize(new Dimension(15, 10));
-		//add(dummy2, c);
 		
 		final JCheckBox classicModeCB = new JCheckBox();
 		classicModeCB.setSelected(Globals.USE_CLASSIC_SNAKE);
@@ -101,12 +80,12 @@ public class GeneralSettingsSubPanel extends JPanel
 				Globals.USE_CLASSIC_SNAKE = classicModeCB.isSelected();
 			}
 		});
-		classicModeCB.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.red));
 		c = new GridBagConstraints();
 		c.weightx = 0;
 		c.gridx = 2;
 		c.gridy = 1;
 		c.anchor = GridBagConstraints.WEST;
+		c.insets = new Insets(0, 9, 0, 0);
 		add(classicModeCB, c);
 		
 		adjustFPS();
@@ -116,7 +95,9 @@ public class GeneralSettingsSubPanel extends JPanel
 	{
 		int fps = FPSSlider_.getValue();
 		Globals.FPS = fps;
-		FPSLabel_.setText("FPS ["+fps+"]:");
-		//FPSPanel_.setMinimumSize(minFPSPanelSize_);
+		String fpsText = "FPS [";
+		if (fps < 10) fpsText += "0";
+		fpsText += fps+"]:";
+		FPSLabel_.setText(fpsText);
 	}
 }

@@ -63,9 +63,10 @@ public class KeyMapping {
 		SnakeAction releasedAction = releasedKeyActions.remove(keys[snakeIndex][action]); 
 		keys[snakeIndex][action] = key;
 		pressedKeyActions.put(key, pressedAction);
-		if (action != Constants.SNAKE_ACTION_SPECIAL) {
+		
+		if (action != Constants.SNAKE_ACTION_SPECIAL)
 			releasedKeyActions.put(key, releasedAction);
-		}
+		
 		return true;
 	}
 	public static int[][] keys =

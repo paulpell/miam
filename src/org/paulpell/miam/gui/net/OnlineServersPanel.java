@@ -51,6 +51,7 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 
 		addHost("localhost"); // TODO : remove this
 	}
+	
 
 	@Override
 	public void displayMessage(String message)

@@ -20,14 +20,17 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 import org.paulpell.miam.gui.AbstractDisplayPanel;
+import org.paulpell.miam.gui.LevelListPanel;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.draw.items.AllTheItems;
+import org.paulpell.miam.logic.levels.LevelChoiceInfo;
 
 @SuppressWarnings("serial")
 public class OnlinePlayersPanel
@@ -40,6 +43,7 @@ public class OnlinePlayersPanel
 	
 	JCheckBox classicCheckBox_;
 	JComboBox <String> snakesNumberBox_;
+	LevelListPanel levelPanel_;
 	
 	JList <String> playersList_;
 	DefaultListModel <String> playersListModel_;
@@ -48,8 +52,11 @@ public class OnlinePlayersPanel
 	JButton addPlayerButton_;
 	JTextArea chatArea_;
 	JTextField chatMsgField_;
+	
 	JButton startButton_;
-
+	boolean startedGameMyself_;
+	
+	
 	// this list contains the components to disable when slave
 	ArrayList <JComponent> hostingComponents_ = new ArrayList <JComponent> ();
 	
@@ -61,6 +68,25 @@ public class OnlinePlayersPanel
 		control_ = control;
 		
 		initPlayersPanel();
+		
+		startedGameMyself_ = false;
+	}
+	
+	// return false if we can't close
+	@Override
+	public boolean canRemovePanel()
+	{
+		if ( control_.isHosting() && ! startedGameMyself_ )
+		{
+			String msg = "The server will be stopped, are you sure?";
+			final int yes = JOptionPane.YES_OPTION;
+			int answer = JOptionPane.showConfirmDialog(
+					this, msg, "Stop server?", JOptionPane.YES_NO_OPTION);
+			if (yes == answer)
+				control_.stopServer();
+			return yes == answer ;
+		}
+		return true;
 	}
 
 	@Override
@@ -124,6 +150,13 @@ public class OnlinePlayersPanel
 		constr.insets = new Insets(3, 3, 3, 13);
 		topPanel.add(snakesNumberBox_, constr);
 		
+		// level to play
+		LevelListPanel.Orientation o = LevelListPanel.Orientation.HORIZONTAL;
+		levelPanel_ = new LevelListPanel(o);
+		constr = new GridBagConstraints();
+		constr.gridx = 5;
+		constr.insets = new Insets(3, 3, 3, 13);
+		topPanel.add(levelPanel_, constr);
 		
 		
 		
@@ -280,8 +313,11 @@ public class OnlinePlayersPanel
 	
 	private void startGame()
 	{
-//		control_.startMasterGame(this);
-		control_.newPressed();
+		startedGameMyself_ = true;
+		String lname = levelPanel_.getLevelName();
+		int sNo = getSnakesNumber();
+		LevelChoiceInfo linfo = new LevelChoiceInfo(lname, sNo);
+		control_.startMasterGame(linfo);
 	}
 	
 	private void sendChatMsg()
@@ -294,8 +330,9 @@ public class OnlinePlayersPanel
 		}
 	}
 
-	public void setIsHosting(boolean isHosting)
+	public void prepare(boolean isHosting)
 	{
+		startedGameMyself_ = false;
 		if (isHosting)
 		{
 			leaveServerButton_.setText("Stop hosting");
@@ -325,7 +362,7 @@ public class OnlinePlayersPanel
 			playersListModel_.add(i, players[i]);
 	}
 	
-	public int getSnakesNumber()
+	private int getSnakesNumber()
 	{
 		try
 		{
@@ -333,6 +370,7 @@ public class OnlinePlayersPanel
 		}
 		catch (NumberFormatException e)
 		{
+			assert false : "Only numbers; so should be parsed correctly";
 			return 0;
 		}
 	}

@@ -1,6 +1,5 @@
 package org.paulpell.miam.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -11,11 +10,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Vector;
 
-import javax.swing.DefaultComboBoxModel;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -29,21 +25,18 @@ import org.paulpell.miam.logic.draw.items.AllTheItems;
 
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Globals;
-import org.paulpell.miam.logic.GameSettings;
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.logic.levels.Level;
-import org.paulpell.miam.logic.levels.DefaultLevel;
-import org.paulpell.miam.logic.levels.LevelFileManager;
+import org.paulpell.miam.logic.levels.LevelChoiceInfo;
 
 @SuppressWarnings("serial")
 public class LevelChooserFrame
 		extends JFrame
-		implements KeyListener
-		, WindowFocusListener
+		implements KeyListener,
+					WindowFocusListener
 {
 
 	JButton chooseButton_;
-	JComboBox <String>  levelChoice_;
+	LevelListPanel levelPanel_;
 	JComboBox<Integer> snakeNoList_;
 	
 	private boolean userCancel_ = false; // to indicate that user pressed ESC
@@ -59,7 +52,7 @@ public class LevelChooserFrame
 		});
 	}
 	
-	private void createGUI(Frame f)
+	private void createGUI(final Frame parent)
 	{
 		GridBagLayout layout = new GridBagLayout();
 		setLayout(layout);
@@ -67,15 +60,20 @@ public class LevelChooserFrame
 		GridBagConstraints c;
 		
 		// number of snakes
-		JPanel snakeNoPanel = new JPanel();
-		snakeNoPanel.add(new JLabel("Snakes:"), BorderLayout.WEST);
+		GridBagLayout snakesNoLayout = new GridBagLayout();
+		c = new GridBagConstraints();
+		c.gridy = 0;
+		JPanel snakeNoPanel = new JPanel(snakesNoLayout);
+		snakeNoPanel.add(new JLabel("Snakes:"), c);
+		
 		Vector<Integer> ss = new Vector<Integer>();
 		for (int i=1; i<=Constants.MAX_NUMBER_OF_SNAKES; ++i)
 			ss.add(i);
-
 		snakeNoList_ = new JComboBox<Integer>(ss);
 		snakeNoList_.setSelectedIndex(Globals.NUMBER_OF_SNAKES - 1);
-		snakeNoPanel.add(snakeNoList_, BorderLayout.EAST);
+		c = new GridBagConstraints();
+		c.gridy = 1;
+		snakeNoPanel.add(snakeNoList_, c);
 		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 0;
@@ -84,27 +82,23 @@ public class LevelChooserFrame
 		add(snakeNoPanel, c);
 		
 		// level list
-		JPanel levelPanel = new JPanel();
-		levelPanel.add(new JLabel("Level:"), BorderLayout.WEST);
-		levelChoice_ = new JComboBox<String> ();
-		String[] levelsList = listLevels();
-		DefaultComboBoxModel <String> model =
-				new DefaultComboBoxModel <String> (levelsList);
-		levelChoice_.setModel(model);
+		LevelListPanel.Orientation o = LevelListPanel.Orientation.VERTICAL;
+		levelPanel_ = new LevelListPanel(o);
 		c = new GridBagConstraints();
 		c.gridx = 1;
 		c.gridy = 0;
 		c.weighty = 1;
 		c.insets = new Insets(5, 5, 5, 5);
-		levelPanel.add(levelChoice_, BorderLayout.EAST);
-		add(levelPanel, c);
+		add(levelPanel_, c);
 		
 		// start button
 		Icon lightningIcon = AllTheItems.getImageIcon(AllTheItems.INDEX_LIGHTNING);
 		chooseButton_ = new JButton("Start", lightningIcon);
-		chooseButton_.addActionListener(new ActionListener() {
+		chooseButton_.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent arg0) {
+			public void actionPerformed(ActionEvent arg0)
+			{
 				endWait();
 			}
 		});
@@ -117,32 +111,11 @@ public class LevelChooserFrame
 		
 		addWindowFocusListener(this);
 
-		setLocationRelativeTo(f);
+		setLocationRelativeTo(parent);
 		pack();
 		setVisible(true);
 	}
 	
-	private String[] listLevels()
-	{
-		ArrayList <String> levelNames = new ArrayList <String> ();
-		levelNames.add("default");
-		
-		try
-		{
-			File folder = new File(Constants.LEVEL_FOLDER);
-			if (folder != null)
-			{
-				for (String s : folder.list())
-					levelNames.add(s);
-			}
-		}
-		catch (Exception e)
-		{}
-
-		String[] s = new String[]{};
-		s = levelNames.toArray(s);
-		return s;
-	}
 	
 	private void endWait()
 	{
@@ -152,55 +125,37 @@ public class LevelChooserFrame
 		}
 	}
 	
-	// returns null if default level is chosen
-	public Level getLevel(GameSettings settings)
-			throws Exception
+	// returns null if user cancels (esc)
+	public LevelChoiceInfo getLevelInfo()
 	{
 
 		synchronized (this)
 		{
-			try {
+			try
+			{
 				wait();
-			} catch (InterruptedException e) {
+			} catch (InterruptedException e) 
+			{
 				Log.logException(e);
 			}
 		}
 		
-		Level l;
-		if (userCancel_)
-			l = null;
+		LevelChoiceInfo linfo = null;
 		
-		else if (levelChoice_.getSelectedIndex() == 0)
-			l = new DefaultLevel(settings);
-		
-		else
+		if ( ! userCancel_ )
 		{
-			File f = new File(
-					"." + File.separatorChar
-					+ Constants.LEVEL_FOLDER + File.separatorChar
-					+ levelChoice_.getSelectedItem());
-			l = LevelFileManager.readLevelFromFile(f);
+			ListModel<Integer> lm = snakeNoList_.getModel();
+			int sNo = lm.getElementAt(snakeNoList_.getSelectedIndex());
+			String lname = levelPanel_.getLevelName();
+			linfo = new LevelChoiceInfo(lname, sNo);
 		}
 		
-		ListModel<Integer> lm = snakeNoList_.getModel();
-		Globals.NUMBER_OF_SNAKES = lm.getElementAt(snakeNoList_.getSelectedIndex());
-		settings.numberOfSnakes_ = Globals.NUMBER_OF_SNAKES;
-		if (null != l)
-		{
-			l.setGameSettings(settings);
-		}
 		setVisible(false);
 		dispose();
 		
-		return l;
+		return linfo;
 	}
-	
-	private void incrementLevel(int di)
-	{
-		int c = levelChoice_.getItemCount();
-		int i = (levelChoice_.getSelectedIndex() + di + c) % c;
-		levelChoice_.setSelectedIndex(i);
-	}
+
 
 	@Override
 	public void keyPressed(KeyEvent arg0) {}
@@ -215,11 +170,11 @@ public class LevelChooserFrame
 			break;
 			
 		case KeyEvent.VK_UP:
-			incrementLevel(1);
+			levelPanel_.incrementLevel(1);
 			break;
 
 		case KeyEvent.VK_DOWN:
-			incrementLevel(-1);
+			levelPanel_.incrementLevel(-1);
 			break;
 			
 		case KeyEvent.VK_ESCAPE:

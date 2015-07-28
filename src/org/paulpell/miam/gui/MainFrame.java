@@ -134,7 +134,7 @@ public class MainFrame
 		if (null == playersPanel_)
 			playersPanel_ = new OnlinePlayersPanel(control_);
 		
-		playersPanel_.setIsHosting(isHosting);
+		playersPanel_.prepare(isHosting);
 		
 		isTopPanelVisible_ = true;
 		setNewPanel(playersPanel_);
@@ -149,13 +149,16 @@ public class MainFrame
 	}
 	public void showWelcomePanel()
 	{
-		isTopPanelVisible_ = true;
-		setNewPanel(welcomePanel_);
-		welcomePanel_.startAnimating();
+		isTopPanelVisible_ = false;
+		boolean b = setNewPanel(welcomePanel_);
+		if (b)
+			welcomePanel_.startAnimating();
 	}
 	
-	private void setNewPanel(AbstractDisplayPanel panel)
+	private boolean setNewPanel(AbstractDisplayPanel panel)
 	{
+		if ( ! currentPanel_.canRemovePanel() )
+			return false;
 		
 		remove(currentPanel_);
 		currentPanel_.setVisible(false);
@@ -179,6 +182,7 @@ public class MainFrame
 		
 		pack();
 		repaint();
+		return true;
 	}
 	
 	

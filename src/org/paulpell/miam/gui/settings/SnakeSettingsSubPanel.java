@@ -8,12 +8,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.Vector;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -21,7 +19,6 @@ import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
-import javax.swing.ListModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -84,7 +81,8 @@ public class SnakeSettingsSubPanel extends Box
 
 	final JTabbedPane keyControlsPane;
 
-	public SnakeSettingsSubPanel() {
+	public SnakeSettingsSubPanel()
+	{
 		super(BoxLayout.Y_AXIS);
 		
 
@@ -93,8 +91,11 @@ public class SnakeSettingsSubPanel extends Box
 		useWidthPanel.add(new JLabel("Snakes are wide:"));
 		final JCheckBox useWidthCB = new JCheckBox();
 		useWidthCB.setSelected(Globals.SNAKE_USE_WIDTH);
-		useWidthCB.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+		useWidthCB.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
 				Globals.SNAKE_USE_WIDTH = useWidthCB.isSelected();
 			}
 		});
@@ -131,26 +132,6 @@ public class SnakeSettingsSubPanel extends Box
 		// ************************* one panel to control number of snakes and their controls
 		JPanel snakesPanel = new JPanel();
 		
-		// ******************** number of snakes
-		JPanel snakeNoPanel = new JPanel();
-		snakeNoPanel.add(new JLabel("Number of snakes:"));
-		Vector<Integer> ss = new Vector<Integer>();
-		for (int i=1; i<=Constants.MAX_NUMBER_OF_SNAKES; ++i) {
-			ss.add(i);
-		}
-
-		final JComboBox<Integer> snakeNoList = new JComboBox<Integer>(ss);
-		snakeNoList.setSelectedIndex(Globals.NUMBER_OF_SNAKES - 1);
-		snakeNoList.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				ListModel<Integer> lm = snakeNoList.getModel();
-				Globals.NUMBER_OF_SNAKES = lm.getElementAt(snakeNoList.getSelectedIndex());
-				adjustControlsPane();
-			}
-		});
-		snakeNoPanel.add(snakeNoList);
-		snakesPanel.add(snakeNoPanel);
-		
 		// controls for each snake
 		keyControlsPane = new JTabbedPane();
 		adjustControlsPane();
@@ -167,31 +148,37 @@ public class SnakeSettingsSubPanel extends Box
 		keyControlsPane.removeAll();
 		int ctrlsNo = 4;
 		
-		for (int i=0; i<Globals.NUMBER_OF_SNAKES; ++i) {
+		//for (int i=0; i<Globals.NUMBER_OF_SNAKES; ++i) {
+		for (int i=0; i<Constants.MAX_NUMBER_OF_SNAKES; ++i)
+		{
 			JPanel controlPanel = new JPanel(new GridLayout(ctrlsNo, 2));
 			
 			controlPanel.add(new JLabel("Turn left:"));
 			final JTextField leftTF =
 					new JTextField(KeyMapping.getSnakeActionKeyRepr(i, Constants.SNAKE_ACTION_TURN_LEFT));
-			leftTF.addKeyListener(new SetActionKeyListener(i, Constants.SNAKE_ACTION_TURN_LEFT, leftTF));
+			leftTF.addKeyListener(
+					new SetActionKeyListener(i, Constants.SNAKE_ACTION_TURN_LEFT, leftTF));
 			controlPanel.add(leftTF);
 			
 			controlPanel.add(new JLabel("Turn right:"));
 			final JTextField rightTF =
 					new JTextField(KeyMapping.getSnakeActionKeyRepr(i, Constants.SNAKE_ACTION_TURN_RIGHT));
-			rightTF.addKeyListener(new SetActionKeyListener(i, Constants.SNAKE_ACTION_TURN_RIGHT, rightTF));
+			rightTF.addKeyListener(
+					new SetActionKeyListener(i, Constants.SNAKE_ACTION_TURN_RIGHT, rightTF));
 			controlPanel.add(rightTF);
 			
 			controlPanel.add(new JLabel("Speed up:"));
 			final JTextField speedTF =
 					new JTextField(KeyMapping.getSnakeActionKeyRepr(i, Constants.SNAKE_ACTION_SPEEDUP));
-			speedTF.addKeyListener(new SetActionKeyListener(i, Constants.SNAKE_ACTION_SPEEDUP, speedTF));
+			speedTF.addKeyListener(
+					new SetActionKeyListener(i, Constants.SNAKE_ACTION_SPEEDUP, speedTF));
 			controlPanel.add(speedTF);
 			
 			controlPanel.add(new JLabel("Special:"));
 			final JTextField specialTF =
 					new JTextField(KeyMapping.getSnakeActionKeyRepr(i, Constants.SNAKE_ACTION_SPECIAL));
-			specialTF.addKeyListener(new SetActionKeyListener(i, Constants.SNAKE_ACTION_SPECIAL, specialTF));
+			specialTF.addKeyListener(
+					new SetActionKeyListener(i, Constants.SNAKE_ACTION_SPECIAL, specialTF));
 			controlPanel.add(specialTF);
 			
 			keyControlsPane.addTab("Snake" + (i+1),controlPanel);
