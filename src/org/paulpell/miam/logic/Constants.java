@@ -14,14 +14,18 @@ public class Constants
 	
 	public final static String LEVEL_FOLDER = "saves";
 	
+	public final static String DEFAULT_LEVEL_NAME = "o1";
+	
 	
 	// reserved keys
-	private static final int[] RESERVED_KEYS = {
-							VK_S/*settings*/,
-							VK_P/*pause*/,
-							VK_N, /* new game */
-							VK_SPACE, /* new game */
-							VK_ESCAPE};
+	private static final int[] RESERVED_KEYS =
+		{
+			VK_S,      //settings
+			VK_P,      // pause
+			VK_N,      // new game 
+			VK_SPACE,  // new game
+			VK_ESCAPE  // general: quit, end game, etc..
+		};
 	
 	public static boolean isKeyReserved(int key)
 	{
@@ -59,6 +63,11 @@ public class Constants
 	public final static int MAX_NUMBER_OF_SNAKES 	= 4;
 	
 	// ITEMS
+	
+	// how many times we try to move an item to avoid collisions
+	public final static int MAX_ITEM_MOVE_TRIAL     = 50;
+	
+	
 	public final static int ITEM_HIGH_PROB_WEIGHT 	= 5;
 	public final static int ITEM_MID_PROB_WEIGHT 	= 3;
 	public final static int ITEM_LOW_PROB_WEIGHT 	= 1;

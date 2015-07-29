@@ -7,13 +7,12 @@ import javax.swing.ImageIcon;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
-import org.paulpell.miam.logic.Constants;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
+// for now, lightning has infinite duration
 
 public class Lightning extends Item
 {
@@ -30,7 +29,7 @@ public class Lightning extends Item
 			throw new UnsupportedOperationException("Image Lightning.png could not be loaded!");
 
 		shape_ = new Rectangle(x0, y0, s_width, s_height);
-		position_ = new Pointd(x0, y0);
+
 		effectDuration_ = 0;
 		extraSpeed_ = Utils.rand.nextDouble() * Globals.SNAKE_EXTRA_SPEEDUP;
 	}
@@ -53,18 +52,11 @@ public class Lightning extends Item
 		s.addSpeedupSpecial(extraSpeed_);
 	}
 	
-
-	public Object clone(Game g)
-	{
-		double x = Math.random() * (Constants.DEFAULT_IMAGE_WIDTH - s_width);
-		double y = Math.random() * (Constants.DEFAULT_IMAGE_HEIGHT - s_height);
-		return new Lightning(x, y);
-	}
-	
 	@Override
 	public void draw(Graphics2D g)
 	{
-		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, null);
+		Pointd pos = shape_.getP1();
+		g.drawImage(s_image.getImage(), (int)pos.x_, (int)pos.y_, null);
 	}
 	
 	public ImageIcon getImageIcon()
@@ -79,20 +71,22 @@ public class Lightning extends Item
 
 
 	@Override
-	public Item newItem(double x, double y) //,Game game)
+	public Lightning newItem(double x, double y)
 	{
 		return new Lightning(x, y);
 	}
 
 
 	@Override
-	public String getExtraParamsDescription() {
+	public String getExtraParamsDescription()
+	{
 		return "" + Double.doubleToLongBits(extraSpeed_);
 	}
 
 
 	@Override
-	public void applyExtraParamsDescription(String params) {
+	public void applyExtraParamsDescription(String params)
+	{
 		extraSpeed_ = Double.longBitsToDouble(Long.parseLong(params));
 	}
 

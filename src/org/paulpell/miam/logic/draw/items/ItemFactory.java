@@ -5,11 +5,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
 
-import org.paulpell.miam.geom.GeometricObject;
+import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
+import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.PAINT_STATE;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.snakes.Snake;
@@ -30,25 +31,18 @@ public class ItemFactory
 
 	final private Timer timer_;
 	
-	final private Game game_;
 	final private Control control_;
 	final private boolean scoreItemsOnly_;
 	
 	// working_ controls whether TimerTasks are created 
 	private boolean working_ = false;
 	
-	
 
-	/*public ItemFactory(Control control, Game g)
-	{
-		this(control, g, true); // conservative: only score_ items
-	}*/
 	
-	public ItemFactory(Control control, Game g, boolean scoreOnly)
+	public ItemFactory(Control control, boolean scoreOnly)
 	{
 		control_ = control;
 		scoreItemsOnly_ = scoreOnly;
-		game_ = g;
 
 		working_ = true;
 		timer_ = new Timer("item-factory");
@@ -68,7 +62,8 @@ public class ItemFactory
 					try
 					{
 						this.wait();
-					} catch (InterruptedException e) {
+					} catch (InterruptedException e)
+					{
 						e.printStackTrace();
 					}
 				}
@@ -92,7 +87,8 @@ public class ItemFactory
 			{
 				if (!working_)
 					return;
-				control_.addItem(createItem(game_.getSnakes(), game_.getItems(), game_.getLevel().getWall()));
+
+				control_.addItem(createItem());
 				// re-run the timer for the next item
 				scheduleTimerTask();
 			}
@@ -100,67 +96,80 @@ public class ItemFactory
 	}
 	
 	// create an item, randomly a score or a special item 
-	public Item createItem(Vector<Snake> snakes, Vector<Item> items, Wall wall)
+	public Item createItem()
 	{
+		// create an initial point, maybe it does not collide with anything =)
+		double x = Utils.rand.nextDouble() *
+				(Constants.DEFAULT_IMAGE_WIDTH - ScoreItem.s_width);
+		double y = Utils.rand.nextDouble() *
+				(Constants.DEFAULT_IMAGE_HEIGHT - ScoreItem.s_height);
+		
+		Item testItem;
+		
 		if (scoreItemsOnly_ || Utils.rand.nextDouble() <= Globals.SCORE_ITEM_PROBABILITY)
-			return createScoreItem(snakes, items, wall);
-
-		return AllTheItems.getRandomItem(game_);
+			testItem = new ScoreItem(x ,y);
+		else
+			testItem = AllTheItems.getRandomItem(x, y);
+		
+		if ( moveToNoCollision(testItem) )
+			return testItem;
+		
+		return null;
 	}
 	
-	
-	// let's admit colliding items
-	public ScoreItem createScoreItem(Vector<Snake> snakes, Vector<Item> items, Wall wall)
+	private boolean itemCollidesWithSnakes (Item item)
 	{
-		do {
-			
-			ScoreItem item = new ScoreItem(
-					Utils.rand.nextDouble() * (Constants.DEFAULT_IMAGE_WIDTH - ScoreItem.s_width),
-					Utils.rand.nextDouble() * (Constants.DEFAULT_IMAGE_HEIGHT - ScoreItem.s_height)
-					);
-			
-			GeometricObject shape = item.getShape();
-			// check whether the item is on a snake
-			boolean colliding = false;
-			for (Snake snake : snakes)
-			{
-				if (snake.isShapeInside(shape))
-				{
-					colliding = true;
-					break;
-				}
-			}
-
-			// check whether the item is on another item
-			if (!colliding)
-			{
-				for (Item item2 : items)
-				{
-					if (null != item2.getShape().intersectGeneric(shape))
-					{
-						colliding = true;
-						break;
-					}
-				}	
-			}
-			
-			// check whether it lies on the wall
-			if (!colliding)
-			{
-				for (WallElement we : wall.getElements())
-				{
-					if (null != we.getGeometricObject().intersectGeneric(shape))
-					{
-						colliding = true;
-						break;
-					}
-				}		
-			}
-			
-			if (!colliding)
-				return item;
-			
-		} while (true);
+		Vector <Snake> snakes = control_.getCurrentGame().getSnakes();
+		for (Snake snake : snakes)
+			if (null != item.isSnakeColliding(snake))
+				return true;
+		return false;
+	}
+	
+	private boolean itemCollidesWithItems (Item item)
+	{
+		Rectangle shape = item.getShape();
+		Vector <Item> items = control_.getCurrentGame().getItems();
+		for (Item item2 : items)
+			if (null != item2.getShape().intersect(shape))
+				return true;
+		return false;
+	}
+	
+	private boolean itemCollidesWithWall (Item item)
+	{
+		Rectangle shape = item.getShape();
+		Wall wall = control_.getCurrentGame().getLevel().getWall();
+		for (WallElement we : wall.getElements())
+			if (null != we.getGeometricObject().intersect(shape))
+				return true;
+		return false;
+	}
+	
+	// return true if a place for the item was found
+	private boolean moveToNoCollision(Item item)
+	{
+		int trials = 0;
+		
+		while ( ++trials < Constants.MAX_ITEM_MOVE_TRIAL )
+		{
+			if (    ! itemCollidesWithSnakes(item)
+				 && ! itemCollidesWithWall(item)
+				 && ! itemCollidesWithItems(item))
+				return true;
+		
+			// or try another place
+			double x = Utils.rand.nextDouble() *
+					(Constants.DEFAULT_IMAGE_WIDTH - ScoreItem.s_width);
+			double y = Utils.rand.nextDouble() *
+					(Constants.DEFAULT_IMAGE_HEIGHT - ScoreItem.s_height);
+			item.moveToPoint(x, y);
+		}
+		
+		if (Globals.DEBUG)
+			Log.logErr("Could not find a place for item: " + item);
+		
+		return false;
 	}
 	
 	public void shutdown()

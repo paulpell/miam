@@ -3,7 +3,6 @@ package org.paulpell.miam.logic.draw.items;
 
 import javax.swing.ImageIcon;
 
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 
@@ -17,9 +16,9 @@ public class AllTheItems
 {
 
 	public final static Item[] items =
-		{
+	{
 		new Banana(0,0),
-		new BananaSpecial(0,0), //, null),
+		new BananaSpecial(0,0),
 		new Lightning(0,0),
 		new ScoreItem(0, 0),
 		new ReversingItem(0,0),
@@ -65,7 +64,7 @@ public class AllTheItems
 	
 	// first choose p randomly in [0,1],
 	// then find which item corresponds to that p, depending on the distribution
-	public static Item getRandomItem(Game game)
+	public static Item getRandomItem(double x, double y)
 	{
 		double p = Math.random();
 		double p_low = 0, p_high;
@@ -78,11 +77,12 @@ public class AllTheItems
 			{
 				if (items[i] instanceof Banana && Globals.NETWORK_DEBUG)
 				{
-					Item i2 = (Item)items[i].clone(game);
-					Log.logMsg("Cloned banana, old = " + items[i] + ", new = " + i2);
+					Item i2 = (Item)items[i].newItem(x, y);
+					if (Globals.DEBUG)
+						Log.logMsg("Cloned banana, old = " + items[i] + ", new = " + i2);
 					return i2;
 				}
-				return (Item)items[i].clone(game);
+				return (Item)items[i].newItem(x, y);
 			}
 
 			p_low = p_high;

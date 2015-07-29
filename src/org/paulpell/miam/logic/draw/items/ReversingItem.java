@@ -7,8 +7,6 @@ import javax.swing.ImageIcon;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
-import org.paulpell.miam.logic.Constants;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
@@ -16,7 +14,8 @@ public class ReversingItem extends Item
 {
 	
 	private static ImageIcon s_image;
-	static {
+	static
+	{
 		s_image = new ImageIcon("images/Reverse.png");
 	}
 	private static int s_width = s_image.getIconWidth();
@@ -24,35 +23,27 @@ public class ReversingItem extends Item
 	
 	public ReversingItem(double x0, double y0)
 	{
-		if (s_image == null) {
+		if (s_image == null)
 			throw new UnsupportedOperationException("Image could not be loaded!");
-		}
+		
 		shape_ = new Rectangle(x0, y0, s_width, s_height);
-		position_ = new Pointd(x0, y0);
 	}
 
 
 	public void draw(Graphics2D g)
 	{
-		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, (int)s_width, (int)s_height, null);
+		Pointd pos = shape_.getP1();
+		g.drawImage(s_image.getImage(), (int)pos.x_, (int)pos.y_, (int)s_width, (int)s_height, null);
 	}
 
 	@Override
 	public boolean effectStep(Snake s)
 	{
-		return true; // no during effect
+		return true; // no lasting effect
 	}
 	public void startEffect(Snake s)
 	{
 		s.reverse();
-	}
-
-	@Override
-	public Object clone(Game g)
-	{
-		double 	x 	= Math.random() * (Constants.DEFAULT_IMAGE_WIDTH - s_width);
-		double	y 	= Math.random() * (Constants.DEFAULT_IMAGE_HEIGHT - s_height);
-		return new ReversingItem(x, y);
 	}
 	
 	@Override
@@ -68,7 +59,7 @@ public class ReversingItem extends Item
 
 
 	@Override
-	public Item newItem(double x, double y) //, Game game)
+	public ReversingItem newItem(double x, double y)
 	{
 		return new ReversingItem(x, y);
 	}
@@ -81,7 +72,8 @@ public class ReversingItem extends Item
 
 
 	@Override
-	public void applyExtraParamsDescription(String params) {
+	public void applyExtraParamsDescription(String params)
+	{
 		// nothing to do
 	}
 

@@ -94,6 +94,16 @@ public class Rectangle extends GeometricObject
 	{
 		return p4_;
 	}
+	
+	public double getWidth()
+	{
+		return width_;
+	}
+	
+	public double getHeight()
+	{
+		return height_;
+	}
 
 	@Override
 	public Pointd intersect(Segment other)

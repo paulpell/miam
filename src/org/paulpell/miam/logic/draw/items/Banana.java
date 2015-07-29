@@ -10,7 +10,6 @@ import javax.swing.ImageIcon;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.logic.Constants;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.Utils;
@@ -39,7 +38,7 @@ public class Banana extends Item
 			throw new UnsupportedOperationException("Image Banana.png could not be loaded!");
 
 		shape_ = new Rectangle(x0, y0, s_width, s_height);
-		position_ = new Pointd(x0, y0);
+
 		this.effectDuration_ = duration;
 		randomMoves_ = new LinkedList <Integer> ();
 		for (int i=0; i<duration; ++i)
@@ -51,20 +50,14 @@ public class Banana extends Item
 	@Override
 	public void draw(Graphics2D g)
 	{
-		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, (int)s_width, (int)s_height, null);
-	}
-	
-	@Override
-	public Object clone(Game g)
-	{
-		double 	x 	= Math.random() * (Constants.DEFAULT_IMAGE_WIDTH - s_width);
-		double	y 	= Math.random() * (Constants.DEFAULT_IMAGE_HEIGHT - s_height);
-		return new Banana(x, y);
+		Pointd pos = shape_.getP1();
+		g.drawImage(s_image.getImage(), (int)pos.x_, (int)pos.y_, (int)s_width, (int)s_height, null);
 	}
 
-	public Item newItem(double x, double y, int duration)
+	@Override
+	public Banana newItem(double x, double y)
 	{
-		return new Banana(x,y,duration);
+		return new Banana(x, y);
 	}
 
 	@Override
@@ -102,12 +95,6 @@ public class Banana extends Item
 	public String getTextDescription()
 	{
 		return "Banana";
-	}
-
-	@Override
-	public Item newItem(double x, double y) //, Game game)
-	{
-		return new Banana(x, y);
 	}
 	
 
@@ -156,7 +143,7 @@ public class Banana extends Item
 	@Override
 	public String toString()
 	{
-		return "Banana[" + position_ + ", moves: " + movesToString() + "]";
+		return "Banana[" + shape_.getP1() + ", moves: " + movesToString() + "]";
 	}
 
 	@Override

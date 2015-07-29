@@ -1,14 +1,12 @@
 package org.paulpell.miam.logic.draw.items;
 
 
-import java.awt.Color;
 import java.awt.Graphics2D;
 
 import javax.swing.ImageIcon;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
@@ -32,13 +30,13 @@ public class ScoreItem extends Item
 		score_ = 1;
 		growth_ = 20;
 		shape_ = new Rectangle(x0, y0, s_width, s_height);
-		position_ = new Pointd(x0, y0);
 	}
 
 	
 	public void draw(Graphics2D g)
 	{
-		g.drawImage(s_image.getImage(), (int)position_.x_, (int)position_.y_, null);
+		Pointd pos = shape_.getP1();
+		g.drawImage(s_image.getImage(), (int)pos.x_, (int)pos.y_, null);
 	}
 
 	@Override
@@ -53,11 +51,6 @@ public class ScoreItem extends Item
 	}
 	
 	@Override
-	public Object clone(Game g)
-	{
-		return new ScoreItem(position_.x_, position_.y_);
-	}
-	@Override
 	public ImageIcon getImageIcon()
 	{
 		return s_image;
@@ -70,7 +63,7 @@ public class ScoreItem extends Item
 
 
 	@Override
-	public Item newItem(double x, double y) //, Game game) 
+	public ScoreItem newItem(double x, double y) 
 	{
 		return new ScoreItem(x,  y);
 	}
@@ -84,7 +77,8 @@ public class ScoreItem extends Item
 
 
 	@Override
-	public void applyExtraParamsDescription(String params) {
+	public void applyExtraParamsDescription(String params)
+	{
 		// nothing
 	}
 

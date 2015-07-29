@@ -5,14 +5,13 @@ import javax.swing.ImageIcon;
 import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.geom.Pointd;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
 /**
  * Extending this class forces an implementation to provide the following methods:
- * clone() -- for the ItemFactory
+ * newItem() -- equivalent of clone for the ItemFactory
  * effectStep() -- here we can decide when to cancel for instance
  * startEffect()
  * 
@@ -23,13 +22,18 @@ public abstract class Item extends Drawable
 	
 	
 	protected Rectangle shape_;
-	protected Pointd position_;
 	protected int effectDuration_; // for lasting effects
 	
 	
 	public Rectangle getShape()
 	{
 		return shape_;
+	}
+	public void moveToPoint(double x, double y)
+	{
+		double w = shape_.getWidth();
+		double h = shape_.getHeight();
+		shape_ = new Rectangle(x, y, w, h);
 	}
 	
 	// needed to display the items in the info panel
@@ -45,19 +49,9 @@ public abstract class Item extends Drawable
 		return shape_.intersect(l);
 	}
 	
-	
-	/*public boolean isPointInside(Pointd p)
-	{
-		if (p == null || shape_ == null)
-			return false;
-		
-		return shape_.isPointInside(p);
-	}*/
-	
-	
 	public Pointd getPosition()
 	{
-		return position_;
+		return shape_.getP1();
 	}
 	
 	public int getEffectDuration()
@@ -65,8 +59,6 @@ public abstract class Item extends Drawable
 		return effectDuration_;
 	}
 	
-	
-	public abstract Object clone(Game g);
 
 	// used by slave game to create fake items
 	public abstract Item newItem(double x, double y);
