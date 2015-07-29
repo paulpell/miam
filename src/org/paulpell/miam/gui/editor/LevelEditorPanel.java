@@ -9,14 +9,15 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 
+import org.paulpell.miam.gui.AbstractDisplayPanel;
 import org.paulpell.miam.gui.DrawImagePanel;
 import org.paulpell.miam.gui.editor.tools.EditorToolsPanel;
 import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 
 @SuppressWarnings("serial")
-public class LevelEditorFrame
-	extends JFrame
+public class LevelEditorPanel
+	extends AbstractDisplayPanel
 	implements KeyListener
 {
 	
@@ -28,16 +29,11 @@ public class LevelEditorFrame
 	
 	LevelEditorMenuBar menubar_;
 	
-	public LevelEditorFrame(LevelEditorControl control)
+	public LevelEditorPanel(LevelEditorControl control, JFrame parent)
 	{
-		super("Snakesss - Level editor");
+		super("Snakesss - Level editor", parent);
 		
 		leControl_ = control;
-		
-		// menu: open, save, save as
-		menubar_ = new LevelEditorMenuBar(leControl_);
-		setJMenuBar(menubar_);
-		
 		
 
 		// draw stuff
@@ -59,8 +55,8 @@ public class LevelEditorFrame
 		toolsPanel_ = new EditorToolsPanel(leControl_);
 		add(toolsPanel_, BorderLayout.EAST);
 		
-		pack();
-		setLocationRelativeTo(null);
+		//pack();
+		//setLocationRelativeTo(null);
 		
 	}
 	
@@ -93,16 +89,24 @@ public class LevelEditorFrame
 	}
 
 	public void keyReleased(KeyEvent arg0)
-	{}
+	{
+		// nothing
+	}
 
 	public void keyTyped(KeyEvent arg0)
 	{
-		
+		// nothing
 	}
 
 	public void tryLevel()
 	{
 		leControl_.playEditedLevel();
+	}
+	
+	@Override
+	public boolean canRemovePanel()
+	{
+		return true;
 	}
 
 }

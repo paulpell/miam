@@ -6,6 +6,8 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
+import javax.swing.JFrame;
+
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Utils;
@@ -55,9 +57,9 @@ public class WelcomePanel extends AbstractDisplayPanel
 	
 	VictoryParticleAnimator particleAnimator_;
 	
-	WelcomePanel(String title)
+	WelcomePanel(String title, JFrame parent)
 	{
-		super(title);
+		super(title, parent);
 		setPreferredSize(new Dimension(Constants.DEFAULT_IMAGE_WIDTH, Constants.DEFAULT_IMAGE_HEIGHT));
 	}
 	

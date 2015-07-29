@@ -19,6 +19,7 @@ import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.GameSettings;
 import org.paulpell.miam.logic.Globals;
+import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.items.SpecialItem;
@@ -277,28 +278,43 @@ public class Snake extends Drawable
 	/* ********** computes dx and dy, the distances the snake will cover on the x_ and y_ axis */
 	protected void computeDs()
 	{
-		dx_ = Math.cos(direction_ / 180. * Math.PI) * speed_;
-		dy_ = Math.sin(direction_ / 180. * Math.PI) * speed_;
+		double dx = Math.cos(direction_ / 180. * Math.PI) * speed_; 
+		double dy = Math.sin(direction_ / 180. * Math.PI) * speed_;
+		if (Globals.SNAKE_DEBUG)
+		{
+			Log.logErr("  computeDs(); old_dx = " +dx_ + ", new = " + dx);
+			Log.logErr("  computeDs(); old_dy = " +dy_ + ", new = " + dy);
+		}
+		dx_ = dx;
+		dy_ = dy;
 	}
 	
 	/* ********** turn *********/
 	// return whether we can actually turn
 	protected void turnLeft()
 	{
-		direction_ = (direction_ - angleDiff_ + 360) % 360;
+		int d = (direction_ - angleDiff_ + 360) % 360;
+
+		if (Globals.SNAKE_DEBUG)
+			Log.logErr("  turnLeft(); old = " +direction_ + ", new = " + d);
+		direction_ = d;
+		
 		cloneHead();
 		computeDs();
 	}
 	protected void turnRight()
 	{
-		direction_ = (direction_ + angleDiff_ + 360) % 360;
+		int d = (direction_ + angleDiff_ + 360) % 360;
+		if (Globals.SNAKE_DEBUG)
+			Log.logErr("  turnRight(); old = " +direction_ + ", new = " + d);
+		direction_ = d;
 		cloneHead();
 		computeDs();
 	}
 	
 	protected void cloneHead()
 	{
-		Pointd newHead = (Pointd) points_.getFirst().clone();
+		Pointd newHead = points_.getFirst().clone();
 		points_.addFirst(newHead);
 	}
 	
@@ -306,6 +322,8 @@ public class Snake extends Drawable
 	{
 		// to handle the uncontrolled turn (banana)
 		int nextDir = -1;
+		if (Globals.SNAKE_DEBUG)
+			Log.logErr("updateTurn(); randomTurn=" +randomTurn_);
 		if (randomTurn_ > -1)
 			nextDir = randomTurn_;
 		
@@ -521,14 +539,19 @@ public class Snake extends Drawable
 		
 		// set the variables for turning
 		updateTurn();
-		
+
 		// advance the head
 		{
 		Pointd head = points_.getFirst();
-		previousHead_ = (Pointd)head.clone();
+		if (Globals.SNAKE_DEBUG)
+			Log.logErr("  advance head; old = " + head);
+		previousHead_ = head.clone();
 		head.x_ += dx_;
 		head.y_ += dy_;
+		if (Globals.SNAKE_DEBUG)
+			Log.logErr("  advance head; new = " + head);
 		}
+
 
 		// advance the tail
 		if (toGrow_ >= speed_)

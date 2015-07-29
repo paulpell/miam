@@ -1,13 +1,12 @@
 package org.paulpell.miam.logic.levels;
 
 import java.awt.Color;
-import java.awt.Frame;
 import java.awt.Graphics2D;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.util.Collection;
 import java.util.Vector;
 
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import org.paulpell.miam.geom.Arrow;
@@ -20,7 +19,7 @@ import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.gui.MessagePainter;
-import org.paulpell.miam.gui.editor.LevelEditorFrame;
+import org.paulpell.miam.gui.editor.LevelEditorPanel;
 import org.paulpell.miam.gui.editor.tools.EditorToolsEnum;
 import org.paulpell.miam.logic.Arith;
 import org.paulpell.miam.logic.Control;
@@ -43,7 +42,8 @@ import org.paulpell.miam.logic.levels.undo.UndoableMove;
 public class LevelEditorControl
 {
 	Control control_;
-	LevelEditorFrame levelEditor_;
+	LevelEditorPanel levelEditor_;
+	JFrame displayFrame_;
 
 	MessagePainter msgPainter_;
 	
@@ -74,16 +74,28 @@ public class LevelEditorControl
 	Level level_= null ;
 	
 	
-	public LevelEditorControl(Control control)
+	public LevelEditorControl(Control control, JFrame parent)
 	{
 		control_ = control;
-		
-		levelEditor_ = new LevelEditorFrame(this);
 		
 		// handles read and write to and from files
 		levelFileManager_ = new LevelFileManager(this);
 		
-		setLevel(new Level()); // should come late, to avoid null pointers =)
+		displayFrame_ = parent;
+		
+		levelEditor_ = new LevelEditorPanel(this, parent);
+		
+		onNew();
+	}
+	
+	// VERY VERY important to call this!!
+	public void setParentFrame ()
+	{
+	}
+	
+	public LevelEditorPanel getLevelEditorPanel()
+	{
+		return levelEditor_;
 	}
 	
 	
@@ -108,11 +120,6 @@ public class LevelEditorControl
 		selectedElement_ = null;
 	}
 	
-	
-	public Frame getFrame()
-	{
-		return levelEditor_;
-	}
 	
 	public int getWidth()
 	{
@@ -171,12 +178,13 @@ public class LevelEditorControl
 		// TODO: encode in level? 
 		undoManager_ = new UndoManager();
 		
-		drawImage();
+		if ( null != levelEditor_ )
+			drawImage();
 	}
 	
 
 	
-	public void drawImage()
+	private void drawImage()
 	{
 		Graphics2D imGr = image_.createGraphics();
 		imGr.setColor(Color.black);
@@ -438,14 +446,14 @@ public class LevelEditorControl
 	
 	public void onNew()
 	{
-		setLevel(new Level());
+		setLevel(new Level("unnamed"));
 	}
 
 	public void onOpen()
 	{
 		try
 		{
-			Level l = levelFileManager_.openLevel();
+			Level l = levelFileManager_.openLevel(displayFrame_);
 			setLevel(l);
 			levelEditor_.requestFocus();
 		}
@@ -460,14 +468,14 @@ public class LevelEditorControl
 	public void onSave()
 	{
 		updateLevel();
-		levelFileManager_.saveLevelToCurrentFile(level_);
+		levelFileManager_.saveLevelToCurrentFile(level_, displayFrame_);
 		levelEditor_.requestFocus();
 	}
 	
 	public void onSaveAs() 
 	{
 		updateLevel();
-		levelFileManager_.saveLevelToNewFile(level_);
+		levelFileManager_.saveLevelToNewFile(level_, displayFrame_);
 		levelEditor_.requestFocus();
 	}
 	
@@ -500,26 +508,20 @@ public class LevelEditorControl
 		level_.setInitialItems(its);
 	}
 	
-	public void focus()
-	{
-		levelEditor_.toFront();
-		levelEditor_.requestFocus();
-	}
-	
 	public void displayMessage(String msg)
 	{
 		msgPainter_.addMessage(msg);
 	}
 	
-	public void setVisible(boolean b)
+	/*public void setVisible(boolean b)
 	{
-		levelEditor_.setVisible(b);
+		levelEditorPanel_.setVisible(b);
 	}
 	
 	public boolean isVisible()
 	{
-		return levelEditor_.isVisible();
-	}
+		return levelEditorPanel_.isVisible();
+	}*/
 	
 	public KeyListener getKeyListener()
 	{

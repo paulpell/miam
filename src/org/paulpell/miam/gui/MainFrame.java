@@ -17,12 +17,15 @@ import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import org.paulpell.miam.gui.editor.LevelEditorMenuBar;
+import org.paulpell.miam.gui.editor.LevelEditorPanel;
 import org.paulpell.miam.gui.net.OnlinePlayersPanel;
 import org.paulpell.miam.gui.net.OnlineServersPanel;
 import org.paulpell.miam.gui.settings.SettingsPanel;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.draw.snakes.Snake;
+import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 
 public class MainFrame
@@ -42,6 +45,10 @@ public class MainFrame
 	GamePanel gamePanel_;
 	SettingsPanel settingsPanel_;
 	WelcomePanel welcomePanel_;
+	LevelEditorPanel levelEditorPanel_;
+	
+	// menu is only used in level editor
+	LevelEditorMenuBar menuBar_;
 	
 	OnlineServersPanel serversPanel_;
 	OnlinePlayersPanel playersPanel_;
@@ -72,8 +79,8 @@ public class MainFrame
 		
 		
 		
-		welcomePanel_ = new WelcomePanel("welcome :)");
-		gamePanel_ = new GamePanel(control_);
+		welcomePanel_ = new WelcomePanel("welcome :)", this);
+		gamePanel_ = new GamePanel(control_, this);
 		currentPanel_ = welcomePanel_;
 		setNewPanel(currentPanel_);
 
@@ -83,6 +90,12 @@ public class MainFrame
 		setVisible(true);
 		
 		showWelcomePanel(); // do it after setVisible, to enable animation
+	}
+	
+	public void setLevelEditorControl(LevelEditorControl leControl)
+	{
+		menuBar_ = new LevelEditorMenuBar(leControl);
+		levelEditorPanel_ = leControl.getLevelEditorPanel();
 	}
 	
 	/*private JPanel createTopPanel()
@@ -113,32 +126,44 @@ public class MainFrame
 
 	public void showSettings()
 	{
-		//if (null == settingsPanel_)
-			settingsPanel_ = new SettingsPanel(control_);
+		if (null == settingsPanel_)
+			settingsPanel_ = new SettingsPanel(control_, this);
 		
 		isTopPanelVisible_ = true;
 		setNewPanel(settingsPanel_);
 	}
 	
+	public void showLevelEditor()
+	{
+
+		isTopPanelVisible_ = false;
+		
+		setJMenuBar(menuBar_);
+		setNewPanel(levelEditorPanel_);
+		
+		repaint();
+	}
 	
 	public void showServerSettings()
 	{
 		if (null == serversPanel_)
-			serversPanel_ = new OnlineServersPanel(control_);
+			serversPanel_ = new OnlineServersPanel(control_, this);
 		
 		isTopPanelVisible_ = true;
 		setNewPanel(serversPanel_);
 	}
+	
 	public void showPlayersSettings(boolean isHosting)
 	{
 		if (null == playersPanel_)
-			playersPanel_ = new OnlinePlayersPanel(control_);
+			playersPanel_ = new OnlinePlayersPanel(control_, this);
 		
 		playersPanel_.prepare(isHosting);
 		
 		isTopPanelVisible_ = true;
 		setNewPanel(playersPanel_);
 	}
+	
 	public void showGamePanel()
 	{
 		isTopPanelVisible_ = false;
@@ -147,6 +172,7 @@ public class MainFrame
 		gamePanel_.setGameover(false);
 		setNewPanel(gamePanel_);
 	}
+	
 	public void showWelcomePanel()
 	{
 		isTopPanelVisible_ = false;
@@ -159,6 +185,11 @@ public class MainFrame
 	{
 		if ( ! currentPanel_.canRemovePanel() )
 			return false;
+		
+		if ( currentPanel_ == levelEditorPanel_ 
+				&& panel != levelEditorPanel_)
+			setJMenuBar(null);
+			
 		
 		remove(currentPanel_);
 		currentPanel_.setVisible(false);

@@ -1,5 +1,6 @@
 package org.paulpell.miam.gui.settings;
 
+import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
 import org.paulpell.miam.gui.AbstractDisplayPanel;
@@ -12,9 +13,9 @@ public class SettingsPanel extends AbstractDisplayPanel
 	final Control control;
 	private JTabbedPane tabs;
 	
-	public SettingsPanel(Control control)
+	public SettingsPanel(Control control, JFrame parent)
 	{
-		super("Snakesss - Settings");
+		super("Snakesss - Settings", parent);
 		this.control = control;
 		
 		tabs = new JTabbedPane(JTabbedPane.LEFT);

@@ -14,6 +14,7 @@ import static java.awt.event.KeyEvent.*;
 
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JTextField;
@@ -40,9 +41,9 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 	
 	ArrayList<String> hostNames_;
 
-	public OnlineServersPanel(Control control)
+	public OnlineServersPanel(Control control, JFrame parent)
 	{
-		super("Hosting or joining a server");
+		super("Hosting or joining a server", parent);
 		control_ = control;
 		
 		hostNames_ = new ArrayList<String> ();

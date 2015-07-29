@@ -1,5 +1,6 @@
 package org.paulpell.miam.gui;
 
+import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public abstract class AbstractDisplayPanel extends JPanel
@@ -10,12 +11,14 @@ public abstract class AbstractDisplayPanel extends JPanel
 	 */
 	private static final long serialVersionUID = -5375212544047422268L;
 
+	JFrame parentFrame_;
 	final String titleText_;
 	
 	
-	public AbstractDisplayPanel(String title)
+	public AbstractDisplayPanel(String title, JFrame parentFrame)
 	{
 		titleText_ = title;
+		parentFrame_ = parentFrame;
 	}
 	
 	final String getTitleText()

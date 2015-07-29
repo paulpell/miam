@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.util.Iterator;
 import java.util.Vector;
 
+import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import org.paulpell.miam.geom.Pointd;
@@ -55,9 +56,9 @@ public class GamePanel extends AbstractDisplayPanel
 	
 	VictoryParticleAnimator particleAnimator_;
 
-	public GamePanel(Control control)
+	public GamePanel(Control control, JFrame parent)
 	{
-		super("Snakesss");
+		super("Snakesss", parent);
 		
 		control_ = control;
 

@@ -1,16 +1,18 @@
 package org.paulpell.miam.logic;
 
 /*
- * An ugly class containing many globals. We make sure there is only one writer for
- * each of these variables, to ensure a minimum of security. We love 'public'!
+ * An ugly class containing many globals. 
  */
 
-public class Globals {
+public class Globals
+{
 	
+	public static boolean DEBUG = true;
 
-	public static boolean ACTION_DEBUG = false;
-	public static boolean NETWORK_DEBUG = true;
-	public static boolean CLASSIC_DEBUG = false;
+	public static boolean ACTION_DEBUG = DEBUG && false;
+	public static boolean NETWORK_DEBUG = DEBUG && false;
+	public static boolean CLASSIC_DEBUG = DEBUG && false;
+	public static boolean SNAKE_DEBUG = DEBUG && false;
 
 	public static int FPS = 25;
 	public static int FPS_MIN = 5;

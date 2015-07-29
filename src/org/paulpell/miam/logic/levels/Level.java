@@ -4,7 +4,6 @@ import java.util.Vector;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Constants;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.GameSettings;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.walls.Wall;
@@ -36,16 +35,19 @@ public class Level
 	
 	
 	protected Vector <VictoryCondition> victoryConditions_;
+	
+	String name_;
 
-	public Level()
+	public Level(String name)
 	{
-		this(GameSettings.getCurrentSettings());
+		this(GameSettings.getCurrentSettings(), name);
 	}
 	
-	public Level(GameSettings settings)
+	public Level(GameSettings settings, String name)
 	{
 		checkSettings(settings);
 		gameSettings_ = settings;
+		name_ = name;
 		
 		// default snake positions:
 		snakeStartPositions_ 	= new Pointd[maxNumSnakes_];
@@ -59,6 +61,17 @@ public class Level
 		
 		initialItems_ = new Vector <Item> ();
 		victoryConditions_ = new Vector <VictoryCondition> ();
+	}
+	
+	
+	public String getName()
+	{
+		return name_;
+	}
+	
+	public void setName(String name)
+	{
+		name_ = name;
 	}
 	
 	

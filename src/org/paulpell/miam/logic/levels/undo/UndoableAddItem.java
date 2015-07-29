@@ -3,7 +3,6 @@ package org.paulpell.miam.logic.levels.undo;
 import java.util.Collection;
 
 import org.paulpell.miam.geom.EditorItem;
-import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 public class UndoableAddItem implements UndoableAction
 {

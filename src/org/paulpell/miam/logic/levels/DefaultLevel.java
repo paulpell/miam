@@ -11,7 +11,7 @@ public class DefaultLevel extends Level
 
 	public DefaultLevel(GameSettings settings)
 	{
-		super(settings);
+		super(settings, Constants.DEFAULT_LEVEL_NAME);
 		wall_ = new DefaultWall();
 		setActualGameMode(GameModesEnum.MODERN);
 			

@@ -65,14 +65,6 @@ public class EditorToolsPanel extends JPanel
 		tryButton.setMnemonic(KeyEvent.VK_T);
 		add(tryButton);
 		
-		
-		/*JButton cancelBut =new JButton("Cancel");
-		cancelBut.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent ev) {
-				levelEditor_.cancelLast();
-			}
-		});
-		add(cancelBut);*/
 		add(Box.createVerticalGlue());
 		
 		positionLabel_ = new JLabel();

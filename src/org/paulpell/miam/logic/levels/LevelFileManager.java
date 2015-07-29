@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+
+import javax.swing.JFrame;
 
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.net.LevelEncoder;
@@ -22,18 +25,51 @@ public class LevelFileManager
 		leControl_ = lec;
 	}
 	
+
+	public static String[] listLevels()
+	{
+		ArrayList <String> levelNames = new ArrayList <String> ();
+		levelNames.add(Constants.DEFAULT_LEVEL_NAME);
+		
+		try
+		{
+			File folder = new File(Constants.LEVEL_FOLDER);
+			if (folder != null)
+			{
+				for (String s : folder.list())
+					levelNames.add(s);
+			}
+		}
+		catch (Exception e)
+		{}
+
+		String[] s = new String[]{};
+		s = levelNames.toArray(s);
+		return s;
+	}
 	
-	protected void saveLevelToCurrentFile(Level l)
+	public static Level readLevelFromDefaultDir(String name)
+			throws Exception
+	{
+		File f = new File(
+				"." + File.separatorChar
+				+ Constants.LEVEL_FOLDER + File.separatorChar
+				+ name);
+		return readLevelFromFile(f);
+	}
+	
+	
+	protected void saveLevelToCurrentFile(Level l, JFrame parent)
 	{
 		if (null == currentFile_)
-			saveLevelToNewFile(l);
+			saveLevelToNewFile(l, parent);
 		else
 			writeLevelToFile(l, currentFile_);
 	}
 	
-	protected void saveLevelToNewFile(Level l)
+	protected void saveLevelToNewFile(Level l, JFrame parent)
 	{
-		FileDialog saveDialog = new FileDialog(leControl_.getFrame(), "Save level", FileDialog.SAVE);
+		FileDialog saveDialog = new FileDialog(parent, "Save level", FileDialog.SAVE);
 		saveDialog.setDirectory(Constants.LEVEL_FOLDER);
 
 		saveDialog.toFront();
@@ -79,10 +115,10 @@ public class LevelFileManager
 		}
 	}
 	
-	protected Level openLevel()
+	protected Level openLevel(JFrame parent)
 			throws Exception
 	{
-		FileDialog openDialog = new FileDialog(leControl_.getFrame(), "Choose level", FileDialog.LOAD);
+		FileDialog openDialog = new FileDialog(parent, "Choose level", FileDialog.LOAD);
 		openDialog.setMultipleMode(false);
 		openDialog.setDirectory(Constants.LEVEL_FOLDER);
 		

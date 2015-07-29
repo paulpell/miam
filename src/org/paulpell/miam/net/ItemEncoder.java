@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.paulpell.miam.geom.Pointd;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.draw.items.Banana;
@@ -22,7 +21,7 @@ public class ItemEncoder
 	private enum ItemEncodingEnum
 	{
 		BANANA(new Banana(0,0)),
-		BANANA_SPECIAL(new BananaSpecial(0,0)), //,null)),
+		BANANA_SPECIAL(new BananaSpecial(0,0)),
 		LIGHTNING(new Lightning(0,0)),
 		REVERSE(new ReversingItem(0,0)),
 		SCORE(new ScoreItem(0,0));
@@ -77,7 +76,11 @@ public class ItemEncoder
 	
 		Pointd position = item.getPosition();
 		
-		byte classByte = class2encoded_.get(item.getClass()).getEncoding();
+		ItemEncodingEnum iee = class2encoded_.get(item.getClass());
+		if ( null == iee )
+			throw new IllegalArgumentException("Unknown item in encoder");
+		
+		byte classByte = iee.getEncoding();
 		
 		// position_: 1 point
 		byte[] pos = NetMethods.point2bytes(position);
@@ -97,9 +100,13 @@ public class ItemEncoder
 		return repr;
 	}
 	
-	public static Item decodeItem(byte[] repr) //, Game game)
+	public static Item decodeItem(byte[] repr)
 	{
-		Item instance = encoded2class_.get(repr[0]).getInstance();
+		ItemEncodingEnum iee = encoded2class_.get(repr[0]); 
+		if ( null == iee )
+			throw new IllegalArgumentException("Unknown item in encoder");
+		
+		Item instance = iee.getInstance();
 		Class<?> theClass = instance.getClass();
 		
 		int poslen = 0xFF & repr[1];
@@ -110,8 +117,8 @@ public class ItemEncoder
 		byte[] extrabs = NetMethods.getSubBytes(repr, 3 + poslen, 3 + poslen + extralen);
 		String extraParams = new String(extrabs);
 		
-		Class<?>[] paramsTypes = new Class[]{double.class, double.class}; //, Game.class};
-		Object[] params = new Object[]{pos.x_, pos.y_}; //, game};
+		Class<?>[] paramsTypes = new Class[]{double.class, double.class};
+		Object[] params = new Object[]{pos.x_, pos.y_};
 		try
 		{
 			Item i = (Item)theClass.getMethod("newItem", paramsTypes).invoke(instance, params);

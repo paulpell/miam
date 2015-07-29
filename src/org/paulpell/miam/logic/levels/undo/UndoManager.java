@@ -1,8 +1,5 @@
 package org.paulpell.miam.logic.levels.undo;
 
-import java.util.Collection;
-
-import org.paulpell.miam.geom.EditorDisplayElement;
 
 /**
  * This class is responsible to maintain a list of actions.
@@ -41,8 +38,6 @@ public class UndoManager
 	
 	public boolean canRedo()
 	{
-		//return null != current_ && null != current_.next_
-		//		|| null != first_;
 		return null != current_ && null != current_.next_ // means not last action
 				|| null == current_ && null != first_;// means everything to redo
 	}

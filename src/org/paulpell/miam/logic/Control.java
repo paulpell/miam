@@ -20,15 +20,17 @@ import org.paulpell.miam.gui.KeyMapping;
 import org.paulpell.miam.gui.LevelChooserFrame;
 import org.paulpell.miam.gui.MainFrame;
 import org.paulpell.miam.gui.MainKeyDispatcher;
-import org.paulpell.miam.gui.net.OnlinePlayersPanel;
 import org.paulpell.miam.logic.PAINT_STATE;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.items.ItemFactory;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 import org.paulpell.miam.logic.gameactions.SnakeAction;
+import org.paulpell.miam.logic.levels.DefaultLevel;
 import org.paulpell.miam.logic.levels.Level;
+import org.paulpell.miam.logic.levels.LevelChoiceInfo;
 import org.paulpell.miam.logic.levels.LevelEditorControl;
+import org.paulpell.miam.logic.levels.LevelFileManager;
 import org.paulpell.miam.net.ActionEncoder;
 import org.paulpell.miam.net.Client;
 import org.paulpell.miam.net.ClientInfo;
@@ -51,18 +53,18 @@ public class Control
 	Game game_;
 	boolean isEditedLevel_;
 	
-	Timer timer_;
-	TimerTask task_;
+	Timer gameTimer_;
 	
 	MainFrame mainFrame_;
 
 	LevelEditorControl leControl_;
+	
 	LevelChooserFrame levelChooserFrame_;
 	
 	// the server may be hosted in this instance
 	Server gameServer_;
-	boolean isOnline_;
-	boolean isServer_ = false; // whether game is hosted here
+	ONLINE_STATE onlineState_;
+
 	Vector<Item> pendingItems_ = new Vector <Item>(); // stored to add them on next round synchronously
 	
 	HashSet<SnakeAction> slaveActions_ = new HashSet <SnakeAction>(); // received at each turn by the slaves, sent out to all of them
@@ -89,11 +91,10 @@ public class Control
 			public void run()
 			{
 				mainFrame_ = new MainFrame(Control.this); // will appear and stay
-				//levelEditor_ = new LevelEditorFrame(Control.this);
-				leControl_ = new LevelEditorControl(Control.this);
-				
+				leControl_ = new LevelEditorControl(Control.this, mainFrame_);
+				mainFrame_.setLevelEditorControl(leControl_);
+
 				KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-				//kfm.addKeyEventDispatcher(new MainKeyDispatcher(mainFrame_, levelEditor_));
 				kfm.addKeyEventDispatcher(new MainKeyDispatcher(Control.this));
 				
 				try
@@ -109,6 +110,7 @@ public class Control
 		});
 		
 		clientId2Infos_ = new HashMap <Integer, ClientInfo> ();
+		onlineState_ = ONLINE_STATE.OFFLINE;
 	}
 	
 
@@ -133,6 +135,19 @@ public class Control
 		return state_ == PAINT_STATE.GAME;
 	}
 	
+	public boolean isHosting()
+	{
+		return onlineState_ == ONLINE_STATE.SERVER;
+	}
+	public boolean isOffline()
+	{
+		return onlineState_ == ONLINE_STATE.OFFLINE;
+	}
+	public boolean isClient()
+	{
+		return onlineState_ == ONLINE_STATE.CLIENT;
+	}
+	
 	private void showGameWindow()
 	{
 		mainFrame_.resetGameInfoPanel(game_.getSnakes(), game_.getPreferredSize());
@@ -144,7 +159,7 @@ public class Control
 		if (null == gameClient_)
 			mainFrame_.showServerSettings();
 		else
-			mainFrame_.showPlayersSettings(isServer_);
+			mainFrame_.showPlayersSettings(isHosting());
 		
 		if (msg != null)
 			mainFrame_.displayMessage(msg);
@@ -171,66 +186,78 @@ public class Control
 	
 	public void endGame()
 	{
-		if (isEditedLevel_)
-		{
-			isEditedLevel_ = false;
-			leControl_.focus();
-		}
 
-		if (isEditedLevel_ || !isOnline_ || isServer_)
+		if (isEditedLevel_ || isOffline() || isHosting())
 		{
-			timer_.cancel();
+			gameTimer_.cancel();
 			itemFactory_.shutdown();
 		}
 		
-		if (isOnline_ && isServer_)
+		if (isHosting())
 			gameClient_.sendGameEnd();
+
+		if (isEditedLevel_)
+		{
+			isEditedLevel_ = false;
+			mainFrame_.showLevelEditor();
+		}
+		else
+			mainFrame_.paintIsGameover(true);
 		
 		state_ = PAINT_STATE.GAME_OVER;
-		mainFrame_.paintIsGameover(true);
 	}
 	
-	private void setLevelForNewGame(Level level)
+	private boolean setLevelForNewGame(LevelChoiceInfo linfo)
 	{
-		game_ = new Game(Control.this, level);
+		GameSettings settings = GameSettings.getCurrentSettings();
+		settings.numberOfSnakes_ = linfo.snakesNumber_;
+		
+		Level level;
+		if (linfo.levelName_.equals(Constants.DEFAULT_LEVEL_NAME))
+			level = new DefaultLevel(settings);
+		else
+		{
+			try
+			{
+				level = LevelFileManager.readLevelFromDefaultDir(linfo.levelName_);
+				level.setGameSettings(settings);
+			}
+			catch (Exception e)
+			{
+				Log.logErr("Cannot open level: " + e.getMessage());
+				Log.logException(e);
+				mainFrame_.displayMessage("Cannot open level: " + e.getMessage());
+				return false;
+			}
+		}
+		
+		game_ = new Game(this, level);
 		state_ = PAINT_STATE.GAME;
 		mainFrame_.stopPaintVictory();
 		
+		return true;
+		
 	}
 	
-	private boolean createGame()
+	private LevelChoiceInfo chooseLevel()
 	{
-		try
-		{
-			// constructor call thread's wait(),
-			// and is notified when user chooses a level!
-			levelChooserFrame_ = new LevelChooserFrame(mainFrame_);
-
-			
-			GameSettings settings = GameSettings.getCurrentSettings();
-			Level level = levelChooserFrame_.getLevel(settings); // blocking
-			levelChooserFrame_ = null; // needed for correct keyevent dispatching
-			if (null == level)
-				return false;
-			
-			setLevelForNewGame(level);
-			isEditedLevel_ = false;
-			return true;
-		}
-		catch (Exception e)
-		{
-			Log.logErr("Cannot open level: " + e.getMessage());
-			Log.logException(e);
-			return false;
-		}
+		levelChooserFrame_ = new LevelChooserFrame(mainFrame_);
+		// getLevelInfo is blocking: calls thread's wait and is notified
+		// when user chooses a level
+		LevelChoiceInfo lci = levelChooserFrame_.getLevelInfo(); 
+		levelChooserFrame_ = null; // needed for correct keyevent dispatching
 		
+		return lci;
 	}
 	
 	public void playEditedGame(Level l)
 	{
-		setLevelForNewGame(l);
 		isEditedLevel_ = true;
 		
+		game_ = new Game(Control.this, l);
+		state_ = PAINT_STATE.GAME;
+		mainFrame_.stopPaintVictory();
+
 		mainFrame_.toFront();
 		mainFrame_.requestFocus();
 		
@@ -240,6 +267,11 @@ public class Control
 		startGameTimer(createLocalGameTimerTask());
 		
 		showGameWindow();
+	}
+	
+	public Game getCurrentGame()
+	{
+		return game_;
 	}
 	
 	
@@ -282,7 +314,7 @@ public class Control
 	{
 		if (null != itemFactory_)
 			itemFactory_.shutdown();
-		itemFactory_ = new ItemFactory(this, game_, Globals.SCORE_ITEMS_ONLY);
+		itemFactory_ = new ItemFactory(this, Globals.SCORE_ITEMS_ONLY);
 	}
 	
 	// start a game hosted remotely (this is a slave)
@@ -305,17 +337,18 @@ public class Control
 
 	// hosting game
 	
-	// this function first reads the parameters from the GUI
-	public void startMasterGame(OnlinePlayersPanel playersPanel)
+	public void startMasterGame(LevelChoiceInfo linfo)
 	{
-		int i = playersPanel.getSnakesNumber();
-		if (i > 0)
-			Globals.NUMBER_OF_SNAKES = i;
+		boolean loaded = setLevelForNewGame(linfo);
+		if (loaded)
+			startMasterGame();
+		else
+			mainFrame_.displayMessage("Cannot create game");
 		
-		startMasterGame();
+		
 	}
 	
-	public void startMasterGame()
+	private void startMasterGame()
 	{
 
 		int numSlaves = gameServer_.getSlaveNumber();
@@ -348,14 +381,13 @@ public class Control
 	// create and launch the updating, drawing thread
 	private void startGameTimer(TimerTask task)
 	{
-		if (null != timer_)
-			timer_.cancel();
-		timer_ = new Timer("drawing");
+		if (null != gameTimer_)
+			gameTimer_.cancel();
+		gameTimer_ = new Timer("drawing");
 
 		lastFrameTime_ = System.currentTimeMillis();
 		
-		task_ = task;
-		timer_.scheduleAtFixedRate(task, 0, 1000 / Globals.FPS);
+		gameTimer_.scheduleAtFixedRate(task, 0, 1000 / Globals.FPS);
 
 	}
 	
@@ -413,19 +445,7 @@ public class Control
 		if (state_ == PAINT_STATE.GAME)
 		{
 			SnakeAction action = KeyMapping.getPressedAction(key);
-			if (action != null)
-			{
-				if (isOnline_)
-				{
-					if (isServer_)
-						addSlaveAction(action);
-					else
-						sendAction(action);
-				}
-	
-				else
-					action.perform(game_.getSnake(action.getSnakeIndex()));
-			}
+			handleActionTaken(action);
 		}
 	}
 	
@@ -434,21 +454,26 @@ public class Control
 		if (state_ == PAINT_STATE.GAME)
 		{
 			SnakeAction action = KeyMapping.getReleasedAction(key);
-			if (action != null)
+			handleActionTaken(action);
+		}
+	}
+	
+	private void handleActionTaken(SnakeAction action)
+	{
+		if (action != null)
+		{
+			switch (onlineState_)
 			{
-				if (isOnline_)
-				{
-					if (isServer_)
-						addSlaveAction(action);
-					else
-						sendAction(action);
-				}
-				
-				else
-				{
-					int i = action.getSnakeIndex();
-					action.perform(game_.getSnake(i));
-				}
+			case OFFLINE:
+				int snakeI = action.getSnakeIndex();
+				action.perform(game_.getSnake(snakeI));
+				break;
+			case SERVER:
+				addSlaveAction(action);
+				break;
+			case CLIENT:
+				sendAction(action);
+				break;
 			}
 		}
 	}
@@ -487,8 +512,9 @@ public class Control
 	// called by game
 	public void requestNewItem()
 	{
-		Item item = itemFactory_.createItem(game_.getSnakes(), game_.getItems(), game_.getLevel().getWall());
-		addItem(item);
+		Item item = itemFactory_.createItem();
+		if (item != null) // can be null if it's too hard to find a new place
+			addItem(item);
 	}
 	
 
@@ -497,17 +523,15 @@ public class Control
 	{
 		if (item != null && game_ != null)
 		{
-			if (isOnline_)
+			if (isOffline())
+				game_.addItem(item);
+			else
 			{
-				assert isServer_ : "Non gameMaster creating Item!";
+				assert isHosting() : "Non gameMaster creating Item!";
 				synchronized (pendingItems_)
 				{
 					pendingItems_.add(item);
 				}
-			}
-			else
-			{
-				game_.addItem(item);	
 			}
 		}
 	}
@@ -523,7 +547,7 @@ public class Control
 	/* Fire up the level editor *********************************/
 	private void levelEditor()
 	{
-		leControl_.setVisible(true);
+		mainFrame_.showLevelEditor();
 	}
 	
 	/* Interaction methods (keyboard) ***************************/
@@ -539,12 +563,23 @@ public class Control
 		case GAME_OVER:
 		case VICTORY:
 			state_ = PAINT_STATE.WELCOME;
-			mainFrame_.showWelcomePanel();
+			switch (onlineState_)
+			{
+			case OFFLINE:
+				mainFrame_.showWelcomePanel();
+				break;
+			case SERVER:
+				mainFrame_.showPlayersSettings(true);
+				break;
+			case CLIENT:
+				mainFrame_.showPlayersSettings(false);
+				break;
+			}
 			break;
 			
 		case GAME:
 		case PAUSE:
-			if (!isOnline_ || isServer_) // only the master can stop an online game =)
+			if (isOffline() || isHosting())
 				endGame();
 			break;
 		}
@@ -554,6 +589,10 @@ public class Control
 	
 	public void newPressed()
 	{
+		assert isOffline() : "newPressed() called when online!!";
+
+		isEditedLevel_ = false;
+	
 		// thread is used to block the level chooser
 		new Thread("level-chooser")
 		{
@@ -563,13 +602,13 @@ public class Control
 						|| state_ == PAINT_STATE.GAME_OVER
 						|| state_ == PAINT_STATE.VICTORY)
 				{
-					if (createGame())
-					{
-						if (isServer_)
-							startMasterGame();
-						else if (!isOnline_)
-							startLocalGame();
-					}
+					LevelChoiceInfo linfo = chooseLevel();
+					if (null == linfo) // cancelled
+						return;
+					
+					boolean loaded = setLevelForNewGame(linfo);
+					if (loaded)
+						startLocalGame();
 					else
 						mainFrame_.displayMessage("Cannot create game");
 				}
@@ -607,12 +646,12 @@ public class Control
 			return levelChooserFrame_;
 		}
 		
-		if (!isEditedLevel_ && leControl_.isVisible())
+		/*if (!isEditedLevel_ && leControl_.isVisible())
 		{
 			if (ctrl)
 				return null; // let the accelerators do the job
 			return leControl_.getKeyListener();
-		}
+		}*/
 		
 		if (isEditedLevel_ || mainFrame_.shouldGetKeyEvents())
 		{
@@ -645,7 +684,7 @@ public class Control
 
 		if (state_ == PAINT_STATE.GAME || state_ == PAINT_STATE.PAUSE)
 		{
-			if (key == VK_P && !isOnline_) // no pause in online mode
+			if (key == VK_P && isOffline()) // no pause in online mode
 				togglePause();
 		}
 		
@@ -709,7 +748,6 @@ public class Control
 			// first handle all start actions, which we validate anyways
 			for (SnakeAction a : slaveActions_)
 			{
-				//if (StartAction.class.isAssignableFrom(a.getClass()))
 				if (a.isStartAction())
 				{
 					start[a.getSnakeIndex()][a.getSimpleActionType()] = true;
@@ -720,7 +758,6 @@ public class Control
 			// then all end actions
 			for (SnakeAction a : slaveActions_)
 			{
-				//if (! StartAction.class.isAssignableFrom(a.getClass()))
 				if (!a.isStartAction())
 				{
 					if (! start[a.getSnakeIndex()][a.getSimpleActionType()])
@@ -732,6 +769,7 @@ public class Control
 			
 			
 			// finally apply the valid actions and send them
+			Log.logErr("Action: " + validActions.size() + " actions");
 			String stepString = "" + (char)validActions.size();
 			for (SnakeAction a: validActions)
 			{
@@ -751,15 +789,15 @@ public class Control
 	// Network methods
 	public void joinGame(String host)
 	{
-		if (isServer_)
+		if (isHosting())
 		{
-			networkFeedback("Already hosting!");
+			networkFeedback("A server is already running, you cannot join another!");
 			return;
 		}
 		
 		if (host == null || host.equals(""))
 		{
-			networkFeedback("Choose a server");
+			networkFeedback("No specified server");
 			return;
 		}
 		InetAddress addr;
@@ -789,7 +827,8 @@ public class Control
 			gameClient_ = new Client(this);
 			gameClient_.connect(addr);
 			gameClient_.start();
-			isOnline_ = true;
+
+			onlineState_ = ONLINE_STATE.CLIENT;
 
 			mainFrame_.resetNetworkPanels();
 			mainFrame_.showPlayersSettings(false);
@@ -807,6 +846,7 @@ public class Control
 	
 	public void clientJoined(ClientInfo info)
 	{
+		assert ! isClient() : "clientJoined() when client";
 		clientId2Infos_.put(info.getClientId(), info);
 		displayServerMessage("New client accepted : " + info);
 		updateConnectedInfo();
@@ -816,6 +856,7 @@ public class Control
 	
 	public void clientLeft(int clientId)
 	{
+		assert ! isClient() : "clientJoined() when client";
 		ClientInfo ci = clientId2Infos_.remove(clientId);
 		updateConnectedInfo();
 
@@ -832,13 +873,12 @@ public class Control
 	
 	public void leaveServer()
 	{
-		if (isOnline_)
-		{
+		if ( isClient() )
 			stopClient();
-			if (isServer_)
-				stopServer();
-			showNetworkWindow(null);
-		}
+		
+		if (isHosting())
+			stopServer(); // calls stopClient()
+		
 	}
 	
 	private void stopClient()
@@ -848,10 +888,11 @@ public class Control
 			gameClient_.end();
 			gameClient_ = null;
 		}
-		isOnline_ = false;
+
+		onlineState_ = ONLINE_STATE.OFFLINE;
 	}
 	
-	private void stopServer()
+	public void stopServer()
 	{
 		stopClient();
 		if (null != gameServer_)
@@ -859,7 +900,8 @@ public class Control
 			gameServer_.end();
 			gameServer_ = null;
 		}
-		isServer_ = false;
+
+		onlineState_ = ONLINE_STATE.OFFLINE;
 	}
 	
 	// remote server stops activity
@@ -871,18 +913,12 @@ public class Control
 	
 	public void serverDied()
 	{
-		if (!isServer_)
+		if ( isClient() )
 		{
-			if (state_ == PAINT_STATE.GAME_OVER)
-				mainFrame_.displayMessage("The server died...");
-			else
-			{
-				mainFrame_.displayMessage("Server died... Sorry");
-				if (state_ == PAINT_STATE.GAME)
-					endGame();
-				
-				stopClient();
-			}
+			mainFrame_.displayMessage("Server died... Sorry");
+			if (state_ == PAINT_STATE.GAME)
+				endGame();
+			stopClient();
 		}
 	}
 	
@@ -894,8 +930,7 @@ public class Control
 			gameServer_ = new Server(this, gameClient_);
 			((MasterClient)gameClient_).setServer(gameServer_);
 			gameServer_.setMaxClientNumber(Globals.ONLINE_DEFAULT_CLIENT_MAX_NUMBER);
-			isServer_ = true;
-			isOnline_ = true;
+			onlineState_ = ONLINE_STATE.SERVER;
 
 			mainFrame_.resetNetworkPanels();
 			mainFrame_.showPlayersSettings(true);
@@ -960,9 +995,9 @@ public class Control
 	
 	public void sendChatMessage(String message)
 	{
-		if (!isOnline_)
+		if ( ! isClient() && ! isHosting() )
 		{
-			mainFrame_.displayMessage("First connect to a server!");
+			mainFrame_.displayMessage("You are connected to no server!");
 			return;
 		}
 		try
@@ -977,54 +1012,55 @@ public class Control
 	
 	public void onReceiveItem(byte[] itemRepr)
 	{
-		if (isOnline_ && null != game_)
-			game_.addItem(ItemEncoder.decodeItem(itemRepr));
+		assert isClient() : "onReceiveItem when not client!";
+		assert null != game_ : "Null game!!";
+
+		game_.addItem(ItemEncoder.decodeItem(itemRepr));
 	}
 	
 	public void sendNetworkLevel() throws IOException
 	{
-		if (isOnline_)
+		assert isHosting() : "sendNetworkLevel() when not hosting!";
+
+		try
 		{
-			try
-			{
-				gameClient_.sendLevel(game_.getLevel());
-			} catch (Exception e) 
-			{
-				mainFrame_.displayMessage("Could not send network level: "+e.getMessage());
-				Log.logErr("Could not send network level: " + e.getMessage());
-				Log.logException(e);
-			}
+			gameClient_.sendLevel(game_.getLevel());
+		} catch (Exception e) 
+		{
+			mainFrame_.displayMessage("Could not send network level: "+e.getMessage());
+			Log.logErr("Could not send network level: " + e.getMessage());
+			Log.logException(e);
 		}
 	}
 
 	public void receiveNetworkLevel(byte[] encoded)
 	{
-		if (isOnline_ && !isServer_)
+		assert isClient() : "receiveNetworkLevel when not client!";
+
+		if (game_ != null)
+			endGame();
+
+		try
 		{
-			if (game_ != null)
-				endGame();
-	
-			try
-			{
-				Level level = LevelEncoder.decodeLevel(encoded);
-				game_ = new RemoteGame(this, level);
-			} catch (Exception e)
-			{
-				mainFrame_.displayMessage("Could not receive network level: "+e.getMessage());
-				Log.logErr("Could not receive network level: " + e.getMessage());
-				Log.logException(e);
-			}
+			Level level = LevelEncoder.decodeLevel(encoded);
+			game_ = new RemoteGame(this, level);
+		} catch (Exception e)
+		{
+			mainFrame_.displayMessage("Could not receive network level: "+e.getMessage());
+			Log.logErr("Could not receive network level: " + e.getMessage());
+			Log.logException(e);
 		}
 	}
 	
 	public void stepSlaveGame(String stepString)
 	{
-		if (null == game_)
-			return;
+		assert null != game_ : "Null game!!";
+		
 		int actionSize = Constants.ENCODED_ACTION_SIZE;
 		int actionsNr = stepString.charAt(0);
 		stepString = stepString.substring(1);
 		
+		Log.logErr("Action: " + actionsNr + " actions");
 		for (int i=0; i<actionsNr; ++i)
 		{
 			String action = stepString.substring(0,actionSize);
@@ -1040,22 +1076,25 @@ public class Control
 		mainFrame_.repaint();
 	}
 	
-	
+	// there can be a tie
 	public void snakesWon(Vector <Snake> ss)
 	{
+		assert ! isClient() : "snakesWon() when client!";
+		
 		state_ = PAINT_STATE.VICTORY;
 		Vector <Color> colors = new Vector <Color> ();
 		for (Snake s : ss)
 			colors.add(s.getColor());
 		mainFrame_.paintVictory(colors);
 		
-		if (isOnline_)
-			gameClient_.sendSnakesWon(ss);
+		//if (isOnline_)
+		gameClient_.sendSnakesWon(ss);
 	}
 	
 	public void onSnakesWon(byte[] bs)
 	{
-		if (isOnline_ && game_ != null)
+		assert isClient() : "snakesWon() when not client!";
+		if ( game_ != null )
 		{
 			Vector <Color> colors = new Vector <Color> ();
 			for (byte b: bs)
@@ -1066,20 +1105,27 @@ public class Control
 
 	public void snakeDied(Snake s, Pointd collision)
 	{
+		assert !isClient() : "snakeDied() when client!";
+		
 		game_.kill(s, collision);
-		if (isOnline_)
+		if ( isHosting() )
 			gameClient_.sendSnakeDeath(s,collision);
 	}
 
 	public void onSnakeDeath(int s, Pointd p)
 	{
-		if (isOnline_ && null != game_)
-			game_.kill(game_.getSnake(s), p);
+		assert isClient() : "snakesWon() when not client!";
+		assert null != game_ : "Null game!!";
+
+		game_.kill(game_.getSnake(s), p);
 	}
 	
 	public void snakeAcceptedItem(Snake s, Item item)
 	{
-		if (isOnline_)
+		assert !isClient() : "snakeAcceptedItem() when client!";
+		
+		// TODO: accepted items should be taken at STEP
+		if (isHosting())
 			gameClient_.sendSnakeAcceptedItem(s.getId(), game_.getItems().indexOf(item));
 
 		game_.getItems().remove(item);
@@ -1092,12 +1138,12 @@ public class Control
 	
 	public void onAcceptItem(int snakeIndex, int itemIndex)
 	{
-		if (isOnline_ && null != game_)
-		{
-			Item i = game_.getItems().remove(itemIndex);
-			Snake s = game_.getSnake(snakeIndex);
-			s.acceptItem(i);
-		}
+		assert isClient() : "snakesWon() when not client!";
+		assert null != game_ : "Null game!!";
+
+		Item i = game_.getItems().remove(itemIndex);
+		Snake s = game_.getSnake(snakeIndex);
+		s.acceptItem(i);
 	}
 
 	
