@@ -45,7 +45,8 @@ public class DefaultLevel extends Level
 			addInitialItem(new ScoreItem(x0, y0));
 		}
 		
-		victoryConditions_.add(new ScoreVictoryCondition(50));
+		//victoryConditions_.add(new ScoreVictoryCondition(50));
+		victoryConditions_.add(new ScoreVictoryCondition(1));
 	}
 
 }

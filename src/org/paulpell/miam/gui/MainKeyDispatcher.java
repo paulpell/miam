@@ -24,7 +24,9 @@ public class MainKeyDispatcher implements KeyEventDispatcher
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e)
 	{
-		boolean ctrl = 0 != (e.getModifiers() & Event.CTRL_MASK); 
+		boolean ctrl = 0 != (e.getModifiers() & Event.CTRL_MASK);
+		
+		
 		KeyListener kl = control_.whoShouldReceiveKeyEvents(ctrl);
 		if (null != kl)
 		{

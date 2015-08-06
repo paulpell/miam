@@ -50,6 +50,7 @@ public class GamePanel extends AbstractDisplayPanel
 	int victoryStarty_ = 150;
 	int victoryStartDelta_ = 150;
 	
+	// this stores the image from one frame to the next
 	BufferedImage image_;
 	
 	Vector<Color> victoryColors_;
@@ -144,27 +145,9 @@ public class GamePanel extends AbstractDisplayPanel
 
 
 			if (paintGameover_)
-			{
-				imGr.setFont(Fonts.bigFont_);
-				imGr.setColor(new Color(255,20,30));
-				int x = 120;
-				imGr.drawString("GAME OVER...", x, 200);
-				imGr.drawString("Space for new", x, 300);
-				imGr.drawString("ESC to main menu", x, 400);
-				gameoverWasDrawn_ = true;
-			}
+				paintGameOver(imGr);
 			else if (paintPause_)
-			{
-				imGr.setFont(Fonts.bigFont_);
-				int pausex = width / 4;
-				int pausey = height / 2 - 100;
-				for (int i=0; i < 5; i++)
-				{
-					imGr.setColor(new Color(100 + 10 * i, 20 + 20 * i, 30 + 30 * i));
-					imGr.drawString("PAUSE", pausex + i, pausey + i);
-				}
-				pauseWasDrawn_ = true;
-			}
+				paintPause(imGr);
 			
 			
 		}
@@ -179,47 +162,7 @@ public class GamePanel extends AbstractDisplayPanel
 		
 		// draw appropriate text if needed
 		if (paintVictory_)
-		{
-			victoryWasDrawn_ = true;
-
-			imGr.setFont(Fonts.bigFont_);
-			int y = victoryStarty_;
-			for (Color c : victoryColors_)
-			{
-				String vs = "Victory!";
-				imGr.setColor(Color.WHITE);
-				imGr.drawString(vs, victoryStartx_ - 1, y - 1);
-				imGr.drawString(vs, victoryStartx_ + 1, y + 1);
-				imGr.drawString(vs, victoryStartx_ - 1, y + 1);
-				imGr.drawString(vs, victoryStartx_ + 1, y - 1);
-				imGr.setColor(c);
-				imGr.drawString(vs, victoryStartx_, y);
-				y += victoryStartDelta_;
-			}
-		
-			particleAnimator_.drawParticles(imGr);
-		}
-		/*else if (paintGameover_)
-		{
-			imGr.setFont(bigFont_);
-			imGr.setColor(new Color(255,20,30));
-			int x = 120;
-			imGr.drawString("GAME OVER...", x, 200);
-			imGr.drawString("Space for new", x, 300);
-			imGr.drawString("ESC to main menu", x, 400);
-		}
-		/*else if (paintPause_)
-		{
-			imGr.setFont(bigFont_);
-			int pausex = width / 4;
-			int pausey = height / 2 - 100;
-			for (int i=0; i < 5; i++)
-			{
-				imGr.setColor(new Color(100 + 10 * i, 20 + 20 * i, 30 + 30 * i));
-				imGr.drawString("PAUSE", pausex + i, pausey + i);
-			}
-		}
-		*/
+			paintVictory(imGr);
 		
 		// and display messages
 		msgPainter_.paintMessages(imGr);
@@ -230,6 +173,57 @@ public class GamePanel extends AbstractDisplayPanel
 		
 		imagePanel_.repaint();
 		
+	}
+	
+	private void paintGameOver(Graphics2D imGr)
+	{
+		boolean keyinfo = ! control_.isEditorLevelPlayed();
+		imGr.setFont(Fonts.bigFont_);
+		imGr.setColor(new Color(255,20,30));
+		int x = 120;
+		imGr.drawString("GAME OVER...", x, 200);
+		if (keyinfo)
+		{
+			imGr.drawString("Space for new", x, 300);
+			imGr.drawString("ESC to main menu", x, 400);
+		}
+		gameoverWasDrawn_ = true;
+	}
+	
+	private void paintVictory(Graphics2D imGr)
+	{
+		imGr.setFont(Fonts.bigFont_);
+		int y = victoryStarty_;
+		for (Color c : victoryColors_)
+		{
+			String vs = "Victory!";
+			imGr.setColor(Color.WHITE);
+			imGr.drawString(vs, victoryStartx_ - 1, y - 1);
+			imGr.drawString(vs, victoryStartx_ + 1, y + 1);
+			imGr.drawString(vs, victoryStartx_ - 1, y + 1);
+			imGr.drawString(vs, victoryStartx_ + 1, y - 1);
+			imGr.setColor(c);
+			imGr.drawString(vs, victoryStartx_, y);
+			y += victoryStartDelta_;
+		}
+	
+		particleAnimator_.drawParticles(imGr);
+
+		victoryWasDrawn_ = true;
+	}
+	
+	private void paintPause(Graphics2D imGr)
+	{
+		imGr.setFont(Fonts.bigFont_);
+		int pausex = getWidth() / 4;
+		int pausey = getHeight() / 2 - 100;
+		for (int i=0; i < 5; i++)
+		{
+			imGr.setColor(new Color(100 + 10 * i, 20 + 20 * i, 30 + 30 * i));
+			imGr.drawString("PAUSE", pausex + i, pausey + i);
+		}
+		
+		pauseWasDrawn_ = true;
 	}
 	
 	public void paint(Graphics g)

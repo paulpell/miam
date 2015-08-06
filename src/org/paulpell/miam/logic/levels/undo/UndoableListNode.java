@@ -8,16 +8,12 @@ class UndoableListNode
 	
 	public UndoableListNode(UndoableListNode prev, UndoableListNode next, UndoableAction action)
 	{
+		assert action != null : "Null action given to undo list node";
 		prev_ = prev;
 		next_ = next;
 		action_ = action;
 	}
 
-	// this will become the last element
-	/*public void cut()
-	{
-		next_ = null;
-	}*/
 	
 	public UndoableAction getAction()
 	{
@@ -36,10 +32,6 @@ class UndoableListNode
 	
 	public UndoableListNode createNext(UndoableAction action)
 	{
-		//UndoableListNode node = this;
-		//while (null != node.next_)
-		///	node = node.next_;
-		//node.next_ = new UndoableListNode(node, null, action);
 		next_ = new UndoableListNode(this, null, action);
 		return next_;
 	}

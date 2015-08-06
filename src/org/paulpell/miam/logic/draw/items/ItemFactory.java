@@ -8,10 +8,8 @@ import java.util.Vector;
 import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Control;
-import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.logic.PAINT_STATE;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 import org.paulpell.miam.logic.draw.walls.Wall;
@@ -37,6 +35,9 @@ public class ItemFactory
 	// working_ controls whether TimerTasks are created 
 	private boolean working_ = false;
 	
+	// used to pause the factory
+	private boolean sleeping_ = false;
+	
 
 	
 	public ItemFactory(Control control, boolean scoreOnly)
@@ -49,34 +50,44 @@ public class ItemFactory
 		scheduleTimerTask();
 	}
 	
+	public boolean isWorking()
+	{
+		return working_;
+	}
+
+	public void scheduleSleep()
+	{
+		synchronized (this)
+		{
+			sleeping_ = true;
+		}
+	}
+	
+	public void wakeup()
+	{
+		synchronized (this)
+		{
+			if ( sleeping_ )
+			{
+				sleeping_ = false;
+				notify();
+			}
+		}
+	}
+	
 	private void scheduleTimerTask()
 	{
 		// first check if game is in pause:
 		// the factory should not run in pause =)
-		if (control_.getState() == PAINT_STATE.PAUSE)
-		{
-			synchronized (this)
-			{
-				while (control_.getState() == PAINT_STATE.PAUSE)
-				{
-					try
-					{
-						this.wait();
-					} catch (InterruptedException e)
-					{
-						e.printStackTrace();
-					}
-				}
-			}
-		}
 		
-		long whenItemAppears = (long)(Math.random() *
+		long appearanceDelay = (long)(Math.random() *
 				(Globals.TIME_BETWEEN_EXTRA_ITEMS_MAX - Globals.TIME_BETWEEN_EXTRA_ITEMS_MIN) +
 				Globals.TIME_BETWEEN_EXTRA_ITEMS_MIN);
-		timer_.schedule(createTimerTask(), whenItemAppears);
+		TimerTask tt = createTimerTask(appearanceDelay);
+		timer_.schedule(tt, appearanceDelay);
 	}
 	
-	private TimerTask createTimerTask()
+	private TimerTask createTimerTask(final long appearanceDelay)
 	{
 		if (!working_)
 			return null;
@@ -87,8 +98,41 @@ public class ItemFactory
 			{
 				if (!working_)
 					return;
+				
+				long timeStart = System.currentTimeMillis();
+				
+				Item item = createItem();
+				boolean waited = false;
+				
+				// if we should sleep, do it before adding an item
+				synchronized (ItemFactory.this)
+				{
+					while ( sleeping_ )
+					{
+						try
+						{
+							ItemFactory.this.wait();
+						} catch (InterruptedException e)
+						{
+							Log.logErr("Cannot pause!");
+							Log.logException(e);
+						}
+						waited = true;
+					}
+				}
+				
+				if ( ! working_)
+					return;
 
-				control_.addItem(createItem());
+				// if we waited, give some more delay when game resumes..
+				if (waited)
+				{
+					long dt = System.currentTimeMillis() - timeStart;
+					long delay = dt > appearanceDelay ? appearanceDelay : dt;
+					Utils.threadSleep(delay);
+				}
+
+				control_.addItem(item);
 				// re-run the timer for the next item
 				scheduleTimerTask();
 			}
@@ -175,6 +219,9 @@ public class ItemFactory
 	public void shutdown()
 	{
 		working_ = false;
+		wakeup(); // do it anyways, the isSleeping check is inside the function
 		timer_.cancel();
+		if (Globals.DEBUG)
+			Log.logMsg ( "factory shut down");
 	}
 }

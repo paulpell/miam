@@ -36,7 +36,7 @@ import org.paulpell.miam.logic.draw.walls.WallElement;
 import org.paulpell.miam.logic.levels.undo.UndoManager;
 import org.paulpell.miam.logic.levels.undo.UndoableAction;
 import org.paulpell.miam.logic.levels.undo.UndoableAddItem;
-import org.paulpell.miam.logic.levels.undo.UndoableDisplayElement;
+import org.paulpell.miam.logic.levels.undo.UndoableAddDisplayElement;
 import org.paulpell.miam.logic.levels.undo.UndoableMove;
 
 public class LevelEditorControl
@@ -57,9 +57,8 @@ public class LevelEditorControl
 	static public final Color selectedItemColor_ = Color.red;
 	
 	EditorToolsEnum tool_ = EditorToolsEnum.HAND;
-	GeometricObject shape_ = null;
 	Pointd firstPoint_ = null;
-	Pointd mousePoint_ = null;
+	static Pointd s_dummyPoint = new Pointd(0,0);
 	
 	Vector <EditorDisplayElement> displayElements_;
 	Vector <EditorArrow> startPositions_ = null;
@@ -88,10 +87,6 @@ public class LevelEditorControl
 		onNew();
 	}
 	
-	// VERY VERY important to call this!!
-	public void setParentFrame ()
-	{
-	}
 	
 	public LevelEditorPanel getLevelEditorPanel()
 	{
@@ -107,9 +102,7 @@ public class LevelEditorControl
 		
 		image_ = new BufferedImage(width_, height_, BufferedImage.TYPE_INT_ARGB);
 		
-		shape_ = null;
 		firstPoint_ = null;
-		mousePoint_ = null;
 		
 
 		
@@ -182,9 +175,13 @@ public class LevelEditorControl
 			drawImage();
 	}
 	
-
-	
 	private void drawImage()
+	{
+		assert firstPoint_ == null : "first point should be null when using dummy point!";
+		drawImage(s_dummyPoint);
+	}
+	
+	private void drawImage(Pointd pMouse)
 	{
 		Graphics2D imGr = image_.createGraphics();
 		imGr.setColor(Color.black);
@@ -203,35 +200,12 @@ public class LevelEditorControl
 		// if the user is drawing a shape, we dynamically do it
 		if (firstPoint_ != null)
 		{
-			double biggestX = Arith.maxd(mousePoint_.x_, firstPoint_.x_);
-			double biggestY = Arith.maxd(mousePoint_.y_, firstPoint_.y_);
-			double dx = Arith.absd(firstPoint_.x_ - mousePoint_.x_);
-			double dy = Arith.absd(firstPoint_.y_ - mousePoint_.y_);
+			GeometricObject shape = makeShape(pMouse);
 			
-			switch (tool_)
-			{
-			case LINE:
-				shape_ =  new Segment(firstPoint_, mousePoint_);
-				break;
-				
-			case RECTANGLE:
-				shape_ = new Rectangle(biggestX, biggestY, (int)dx, (int)dy, false);
-				break;
-				
-			case CIRCLE:
-				double rad = Arith.maxd(dx, dy) / 2.;
-				Pointd center = new Pointd(biggestX + rad, biggestY + rad);
-				shape_ = new Circle(center, rad);
-				break;
-				
-			default:
-				shape_ = null;
-			}
-			
-			if (null != shape_)
+			if (null != shape)
 			{
 				imGr.setColor(defaultElementColor_);
-				shape_.draw(imGr);
+				shape.draw(imGr);
 			}
 		}
 		
@@ -242,14 +216,41 @@ public class LevelEditorControl
 			imGr.setColor(c2);
 			selectedElement_.getGeometricObject().draw(imGr);
 			
-			Pointd p = selectedElement_.getSelectedPoint();
+			Pointd pSel = selectedElement_.getSelectedPoint();
 			imGr.setColor(selectedPointColor_);
-			imGr.drawRect((int)p.x_, (int)p.y_, 1, 1);
+			imGr.drawRect((int)pSel.x_, (int)pSel.y_, 1, 1);
 		}
 		
 		msgPainter_.paintMessages(imGr);
 		
 		levelEditor_.setImage(image_);
+	}
+	
+	private GeometricObject makeShape(Pointd p2)
+	{
+		assert null != firstPoint_ : "firstPoint_ must be defined for makeShape!";
+		
+		double biggestX = Arith.maxd(p2.x_, firstPoint_.x_);
+		double biggestY = Arith.maxd(p2.y_, firstPoint_.y_);
+		double dx = Arith.absd(firstPoint_.x_ - p2.x_);
+		double dy = Arith.absd(firstPoint_.y_ - p2.y_);
+		
+		switch (tool_)
+		{
+		case LINE:
+			return new Segment(firstPoint_, p2);
+			
+		case RECTANGLE:
+			return new Rectangle(biggestX, biggestY, (int)dx, (int)dy, false);
+			
+		case CIRCLE:
+			double rad = Arith.maxd(dx, dy) / 2.;
+			Pointd center = new Pointd(biggestX + rad, biggestY + rad);
+			return new Circle(center, rad);
+			
+		default:
+			return null;
+		}
 	}
 	
 	
@@ -278,10 +279,8 @@ public class LevelEditorControl
 			if (null != selectedElement_)
 				selectedElement_.move(p);
 		}
-		else if (null != firstPoint_)
-			mousePoint_ = p;
 
-		drawImage();
+		drawImage(p);
 	}
 	
 
@@ -299,10 +298,10 @@ public class LevelEditorControl
 		case LINE:
 		case RECTANGLE:
 		case CIRCLE:
-			if (firstPoint_ == null)
+			if ( null == firstPoint_ )
 				firstPoint_ = p;
 			else
-				addDisplayElementAction();
+				addDisplayElementAction(p);
 			break;
 			
 		case HAND:
@@ -330,11 +329,12 @@ public class LevelEditorControl
 			throw new UnsupportedOperationException("Unknown tool type");
 		}
 	}
-	private void addDisplayElementAction()
+	private void addDisplayElementAction(Pointd p2)
 	{
+		GeometricObject shape = makeShape(p2);
 		firstPoint_ = null;
-		EditorDisplayElement ede = EditorDisplayElement.createElement(shape_, defaultElementColor_, true);
-		undoManager_.actionTaken(new UndoableDisplayElement(ede, displayElements_));
+		EditorDisplayElement ede = EditorDisplayElement.createElement(shape, defaultElementColor_, true);
+		undoManager_.actionTaken(new UndoableAddDisplayElement(ede, displayElements_));
 	}
 	
 	private void addItemAction(Item i)
@@ -413,8 +413,26 @@ public class LevelEditorControl
 
 	public void cancelCurrent()
 	{
-		firstPoint_ = null;
-		shape_ = null;
+		switch (tool_)
+		{
+		case LINE:
+		case RECTANGLE:
+		case CIRCLE:
+			firstPoint_ = null;
+			break;
+			
+		case HAND:
+			if ( null != selectedElement_ )
+			{
+				unselectElement();
+				undoManager_.cancelCurrent();
+			}
+			break;
+			
+		default:
+			return;
+		}
+		
 		drawImage();
 	}
 	
@@ -481,12 +499,14 @@ public class LevelEditorControl
 	
 	public void onUndo()
 	{
+		cancelCurrent();
 		undoManager_.undo();
 		drawImage();
 	}
 	
 	public void onRedo()
 	{
+		cancelCurrent();
 		undoManager_.redo();
 		drawImage();
 	}
@@ -512,16 +532,6 @@ public class LevelEditorControl
 	{
 		msgPainter_.addMessage(msg);
 	}
-	
-	/*public void setVisible(boolean b)
-	{
-		levelEditorPanel_.setVisible(b);
-	}
-	
-	public boolean isVisible()
-	{
-		return levelEditorPanel_.isVisible();
-	}*/
 	
 	public KeyListener getKeyListener()
 	{

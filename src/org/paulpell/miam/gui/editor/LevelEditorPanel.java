@@ -54,10 +54,6 @@ public class LevelEditorPanel
 		
 		toolsPanel_ = new EditorToolsPanel(leControl_);
 		add(toolsPanel_, BorderLayout.EAST);
-		
-		//pack();
-		//setLocationRelativeTo(null);
-		
 	}
 	
 	public void setImage(BufferedImage image)
@@ -84,6 +80,10 @@ public class LevelEditorPanel
 		case KeyEvent.VK_DELETE:
 		case KeyEvent.VK_BACK_SPACE:
 			leControl_.deleteSelected();
+			break;
+			
+		case KeyEvent.VK_ESCAPE:
+			leControl_.cancelCurrent();
 			break;
 		}
 	}

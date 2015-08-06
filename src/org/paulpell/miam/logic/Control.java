@@ -51,7 +51,7 @@ public class Control
 
 	PAINT_STATE state_ = PAINT_STATE.WELCOME;
 	Game game_;
-	boolean isEditedLevel_;
+	boolean isEditorLevelPlayed_;
 	
 	Timer gameTimer_;
 	
@@ -64,6 +64,7 @@ public class Control
 	// the server may be hosted in this instance
 	Server gameServer_;
 	ONLINE_STATE onlineState_;
+	LevelChoiceInfo onlineLastLevelChoice_;
 
 	Vector<Item> pendingItems_ = new Vector <Item>(); // stored to add them on next round synchronously
 	
@@ -130,6 +131,11 @@ public class Control
 		return state_;
 	}
 	
+	public boolean isEditorLevelPlayed ()
+	{
+		return isEditorLevelPlayed_;
+	}
+	
 	public boolean isGameRunning()
 	{
 		return state_ == PAINT_STATE.GAME;
@@ -148,13 +154,15 @@ public class Control
 		return onlineState_ == ONLINE_STATE.CLIENT;
 	}
 	
-	private void showGameWindow()
+	private void showGamePanel()
 	{
+		mainFrame_.stopPaintVictory();
 		mainFrame_.resetGameInfoPanel(game_.getSnakes(), game_.getPreferredSize());
-		mainFrame_.showGamePanel();
+		if (mainFrame_.showGamePanel())
+			state_ = PAINT_STATE.GAME;
 	}
 	
-	private void showNetworkWindow(final String msg)
+	private void showNetworkPanel(final String msg)
 	{
 		if (null == gameClient_)
 			mainFrame_.showServerSettings();
@@ -163,6 +171,12 @@ public class Control
 		
 		if (msg != null)
 			mainFrame_.displayMessage(msg);
+	}
+	
+	private void showWelcomePanel()
+	{
+		if (mainFrame_.showWelcomePanel())
+			state_ = PAINT_STATE.WELCOME;
 	}
 	
 	
@@ -186,25 +200,39 @@ public class Control
 	
 	public void endGame()
 	{
+		
 
-		if (isEditedLevel_ || isOffline() || isHosting())
-		{
-			gameTimer_.cancel();
-			itemFactory_.shutdown();
-		}
 		
 		if (isHosting())
 			gameClient_.sendGameEnd();
 
-		if (isEditedLevel_)
+		mainFrame_.paintIsGameover(true);
+
+		state_ = PAINT_STATE.GAME_OVER;
+		
+		endGameDetails();
+	}
+	
+	
+	// also used in case of victory
+	private void endGameDetails()
+	{
+
+		if (isEditorLevelPlayed_ || isOffline() || isHosting())
 		{
-			isEditedLevel_ = false;
+			gameTimer_.cancel();
+			itemFactory_.shutdown();
+			mainFrame_.repaint();
+		}
+
+
+		if (isEditorLevelPlayed_)
+		{
+			isEditorLevelPlayed_ = false;
+			Utils.threadSleep(2000);
 			mainFrame_.showLevelEditor();
 		}
-		else
-			mainFrame_.paintIsGameover(true);
 		
-		state_ = PAINT_STATE.GAME_OVER;
 	}
 	
 	private boolean setLevelForNewGame(LevelChoiceInfo linfo)
@@ -232,8 +260,6 @@ public class Control
 		}
 		
 		game_ = new Game(this, level);
-		state_ = PAINT_STATE.GAME;
-		mainFrame_.stopPaintVictory();
 		
 		return true;
 		
@@ -252,11 +278,10 @@ public class Control
 	
 	public void playEditedGame(Level l)
 	{
-		isEditedLevel_ = true;
+		mainFrame_.stopPaintVictory();
+		isEditorLevelPlayed_ = true;
 		
 		game_ = new Game(Control.this, l);
-		state_ = PAINT_STATE.GAME;
-		mainFrame_.stopPaintVictory();
 
 		mainFrame_.toFront();
 		mainFrame_.requestFocus();
@@ -266,7 +291,7 @@ public class Control
 
 		startGameTimer(createLocalGameTimerTask());
 		
-		showGameWindow();
+		showGamePanel();
 	}
 	
 	public Game getCurrentGame()
@@ -284,7 +309,7 @@ public class Control
 
 		startGameTimer(createLocalGameTimerTask());
 		
-		showGameWindow();
+		showGamePanel();
 	}
 	
 
@@ -312,8 +337,9 @@ public class Control
 	
 	private void startItemFactory()
 	{
-		if (null != itemFactory_)
-			itemFactory_.shutdown();
+		if ( null != itemFactory_ )
+			assert ! itemFactory_.isWorking() : "ItemFactory still working!!";
+		
 		itemFactory_ = new ItemFactory(this, Globals.SCORE_ITEMS_ONLY);
 	}
 	
@@ -327,11 +353,9 @@ public class Control
 			return;
 		}
 		
-		state_ = PAINT_STATE.GAME;
-
 		mainFrame_.paintIsGameover(false);
 		mainFrame_.stopPaintVictory();
-		showGameWindow();
+		showGamePanel();
 	}
 	
 
@@ -341,7 +365,10 @@ public class Control
 	{
 		boolean loaded = setLevelForNewGame(linfo);
 		if (loaded)
+		{
+			onlineLastLevelChoice_ = linfo;
 			startMasterGame();
+		}
 		else
 			mainFrame_.displayMessage("Cannot create game");
 		
@@ -350,32 +377,59 @@ public class Control
 	
 	private void startMasterGame()
 	{
-
 		int numSlaves = gameServer_.getSlaveNumber();
 		pendingItems_.removeAllElements();
 		slaveActions_.clear();
 		
+		String errMsg = null;
+		Exception ex = null;
+
 		if (numSlaves > 0)
 		{
 			try
 			{
-				sendNetworkLevel();
-					
+					sendNetworkLevel();
+			}
+			catch (IOException e)
+			{
+				ex = e;
+				errMsg = "Cannot send network level: " + e.getMessage();
+			}
+		}
+				
+				
+		if ( null == errMsg && numSlaves > 0)
+		{
+			try
+			{
 				if (Globals.NETWORK_DEBUG)
 					Log.logMsg("Send START, id="+gameClient_.getServerId());
 				gameClient_.sendStartCommand();
 			}
 			catch (IOException e)
 			{
-				networkFeedback("Could not start the game: "+e.getLocalizedMessage());
+				ex = e;
+				errMsg = "Cannot send start command: " + e.getMessage();
 			}
+			
+		}
+				
+				
+				
+		if ( null == errMsg )
+		{
+			startItemFactory();
+			startGameTimer(createMasterGameTimerTask());
+			showGamePanel();
+		}
+		else // error!
+		{
+			mainFrame_.displayMessage(errMsg);
+			Log.logErr(errMsg);
+			assert null != ex : "e should be set with errMsg";
+			Log.logException(ex);
 		}
 
-		startItemFactory();
-
-		startGameTimer(createMasterGameTimerTask());
-		
-		showGameWindow();
 	}
 	
 	// create and launch the updating, drawing thread
@@ -383,7 +437,7 @@ public class Control
 	{
 		if (null != gameTimer_)
 			gameTimer_.cancel();
-		gameTimer_ = new Timer("drawing");
+		gameTimer_ = new Timer("game-update");
 
 		lastFrameTime_ = System.currentTimeMillis();
 		
@@ -427,7 +481,7 @@ public class Control
 						{
 							if (Globals.NETWORK_DEBUG)
 								Log.logErr("ERROR: Could not send game data: "+e.getLocalizedMessage());
-							showNetworkWindow("ERROR: Could not send game data: "+e.getLocalizedMessage());
+							showNetworkPanel("ERROR: Could not send game data: "+e.getLocalizedMessage());
 							return;
 						}
 					}
@@ -451,7 +505,7 @@ public class Control
 	
 	private void onKeyReleasedAction(int key)
 	{
-		if (state_ == PAINT_STATE.GAME)
+		if (state_ == PAINT_STATE.GAME || state_ == PAINT_STATE.PAUSE)
 		{
 			SnakeAction action = KeyMapping.getReleasedAction(key);
 			handleActionTaken(action);
@@ -560,6 +614,10 @@ public class Control
 			System.exit(0);	
 			break;
 			
+		case EDITOR:
+			showWelcomePanel();
+			break;
+			
 		case GAME_OVER:
 		case VICTORY:
 			state_ = PAINT_STATE.WELCOME;
@@ -569,6 +627,7 @@ public class Control
 				mainFrame_.showWelcomePanel();
 				break;
 			case SERVER:
+				onlineLastLevelChoice_ = null;
 				mainFrame_.showPlayersSettings(true);
 				break;
 			case CLIENT:
@@ -589,9 +648,18 @@ public class Control
 	
 	public void newPressed()
 	{
-		assert isOffline() : "newPressed() called when online!!";
+		if ( isClient() )
+			return;
+		
+		if ( isHosting() )
+		{
+			// 'n' pressed only active after game over
+			if ( null != onlineLastLevelChoice_)
+				startMasterGame(onlineLastLevelChoice_);
+			return;
+		}
 
-		isEditedLevel_ = false;
+		assert ! isEditorLevelPlayed_ : "new pressed when trying edited level";
 	
 		// thread is used to block the level chooser
 		new Thread("level-chooser")
@@ -626,13 +694,11 @@ public class Control
 			mainFrame_.paintIsGameInPause(false);
 
 			// wake up factory
-			synchronized (itemFactory_)
-			{
-				itemFactory_.notify();
-			}
+			itemFactory_.wakeup();
 		}
 		else if (state_ == PAINT_STATE.GAME)
 		{
+			itemFactory_.scheduleSleep();
 			state_ = PAINT_STATE.PAUSE;
 			mainFrame_.paintIsGameInPause(true);
 		}
@@ -642,21 +708,11 @@ public class Control
 	public KeyListener whoShouldReceiveKeyEvents(boolean ctrl)
 	{
 		if (null != levelChooserFrame_)
-		{
 			return levelChooserFrame_;
-		}
 		
-		/*if (!isEditedLevel_ && leControl_.isVisible())
-		{
-			if (ctrl)
-				return null; // let the accelerators do the job
-			return leControl_.getKeyListener();
-		}*/
-		
-		if (isEditedLevel_ || mainFrame_.shouldGetKeyEvents())
-		{
-			return mainFrame_;
-		}
+		KeyListener mfkl = mainFrame_.getCurrentKeyListener(ctrl);
+		if (null != mfkl)
+			return mfkl;
 
 		return null;
 	}
@@ -707,7 +763,7 @@ public class Control
 				break;
 				
 			case VK_O:
-				showNetworkWindow(null);
+				showNetworkPanel(null);
 				break;
 				
 			default:
@@ -868,7 +924,7 @@ public class Control
 	public void rejected()
 	{
 		stopClient();
-		showNetworkWindow("Client was rejected by the server");
+		showNetworkPanel("Client was rejected by the server");
 	}
 	
 	public void leaveServer()
@@ -879,6 +935,7 @@ public class Control
 		if (isHosting())
 			stopServer(); // calls stopClient()
 		
+		showNetworkPanel(null);
 	}
 	
 	private void stopClient()
@@ -1087,8 +1144,10 @@ public class Control
 			colors.add(s.getColor());
 		mainFrame_.paintVictory(colors);
 		
-		//if (isOnline_)
-		gameClient_.sendSnakesWon(ss);
+		if ( isHosting() )
+			gameClient_.sendSnakesWon(ss);
+
+		endGameDetails();
 	}
 	
 	public void onSnakesWon(byte[] bs)

@@ -58,7 +58,7 @@ public class VictoryConditionEncoder
 		encoded[0] = b;
 		
 		NetMethods.setSubBytes(plen, encoded, 1, 5);
-		NetMethods.setSubBytes(plen, params, 5, 5 + params.length);
+		NetMethods.setSubBytes(params, encoded, 5, 5 + params.length);
 		
 		return encoded;
 	}

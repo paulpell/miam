@@ -68,4 +68,15 @@ public class UndoManager
 		}
 		action.doAction();
 	}
+	
+	public void cancelCurrent()
+	{
+		if ( null != current_)
+		{
+			current_.action_.undoAction();
+			current_ = current_.prev_;
+			if ( null != current_ )
+				current_.next_ = null;
+		}
+	}
 }

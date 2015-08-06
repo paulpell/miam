@@ -118,9 +118,17 @@ public class MainFrame
 
 
 	// we want to pass the key events to control when welcome and game panels are active 
-	public boolean shouldGetKeyEvents()
+	// and to level editor itself when it is active
+	public KeyListener getCurrentKeyListener(boolean ctrl)
 	{
-		return currentPanel_ == gamePanel_ || currentPanel_ == welcomePanel_;
+		if (currentPanel_ == gamePanel_
+				|| currentPanel_ == welcomePanel_)
+			return this;
+		// if control is pressed, let the accelerators do their job
+		else if (currentPanel_ == levelEditorPanel_ && ! ctrl ) 
+			return levelEditorPanel_;
+		
+		return null;
 	}
 
 
@@ -164,21 +172,22 @@ public class MainFrame
 		setNewPanel(playersPanel_);
 	}
 	
-	public void showGamePanel()
+	public boolean showGamePanel()
 	{
 		isTopPanelVisible_ = false;
 
 		gamePanel_.setPause(false);
 		gamePanel_.setGameover(false);
-		setNewPanel(gamePanel_);
+		return setNewPanel(gamePanel_);
 	}
 	
-	public void showWelcomePanel()
+	public boolean showWelcomePanel()
 	{
 		isTopPanelVisible_ = false;
 		boolean b = setNewPanel(welcomePanel_);
 		if (b)
 			welcomePanel_.startAnimating();
+		return b;
 	}
 	
 	private boolean setNewPanel(AbstractDisplayPanel panel)
@@ -299,16 +308,19 @@ public class MainFrame
 
 	/* User keyboard interface ***********************************/
 
+	@Override
 	public void keyPressed(KeyEvent arg0)
 	{
 		control_.keyPressed(arg0.getKeyCode());
 	}
 
+	@Override
 	public void keyReleased(KeyEvent arg0)
 	{
 		control_.keyReleased(arg0.getKeyCode());
 	}
 
+	@Override
 	public void keyTyped(KeyEvent arg0)
 	{}
 	

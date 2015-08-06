@@ -6,5 +6,6 @@ public enum PAINT_STATE
 	GAME,
 	GAME_OVER,
 	PAUSE,
-	VICTORY
+	VICTORY,
+	EDITOR
 }
