@@ -35,8 +35,7 @@ import org.paulpell.miam.logic.draw.walls.Wall;
 import org.paulpell.miam.logic.draw.walls.WallElement;
 import org.paulpell.miam.logic.levels.undo.UndoManager;
 import org.paulpell.miam.logic.levels.undo.UndoableAction;
-import org.paulpell.miam.logic.levels.undo.UndoableAddItem;
-import org.paulpell.miam.logic.levels.undo.UndoableAddDisplayElement;
+import org.paulpell.miam.logic.levels.undo.UndoableAddElement;
 import org.paulpell.miam.logic.levels.undo.UndoableMove;
 
 public class LevelEditorControl
@@ -334,13 +333,15 @@ public class LevelEditorControl
 		GeometricObject shape = makeShape(p2);
 		firstPoint_ = null;
 		EditorDisplayElement ede = EditorDisplayElement.createElement(shape, defaultElementColor_, true);
-		undoManager_.actionTaken(new UndoableAddDisplayElement(ede, displayElements_));
+		undoManager_.actionTaken(
+				new UndoableAddElement <EditorDisplayElement> (ede, displayElements_));
 	}
 	
 	private void addItemAction(Item i)
 	{
 		EditorItem ei = new EditorItem(selectedItemColor_, i);
-		undoManager_.actionTaken(new UndoableAddItem(ei, items_));
+		undoManager_.actionTaken(
+				new UndoableAddElement <EditorItem> (ei, items_));
 	}
 	
 	private void handleHandClick(Pointd where)
