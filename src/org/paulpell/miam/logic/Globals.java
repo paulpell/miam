@@ -14,7 +14,7 @@ public class Globals
 	public static boolean ACTION_DEBUG = DEBUG && false;
 	public static boolean NETWORK_DEBUG = DEBUG && false;
 	public static boolean CLASSIC_DEBUG = DEBUG && false;
-	public static boolean SNAKE_DEBUG = DEBUG && true;
+	public static boolean SNAKE_DEBUG = DEBUG && false;
 
 	
 
@@ -26,6 +26,7 @@ public class Globals
 	
 	public static boolean USE_ANIMATIONS = true;
 	public static boolean USE_PARTICLE_ANIMATIONS = false;
+	public static boolean USE_BLURRING = false;
 	
 	
 	//****************************************************************

@@ -149,10 +149,14 @@ public class Game
 		deadSnakes_.clear();
 	}
 	
-	public void snakeTakesItem (int snakeIndex, int itemIndex)
+	private void snakeCollidesItem (int snakeIndex, int itemIndex)
 	{
 		control_.snakeEncounteredItem(snakeIndex, itemIndex);
-		
+		snakeTakesItem (snakeIndex, itemIndex);
+	}
+	
+	public void snakeTakesItem (int snakeIndex, int itemIndex)
+	{
 		Item i = items_.remove(itemIndex);
 		if ( Item.ItemType.GLOBAL == i.getType() )
 			handleGlobalItem ((GlobalEffectItem)i);
@@ -258,7 +262,8 @@ public class Game
 		{
 			Item item = it.next();
 			if ( null != item.isSnakeColliding(s) )
-				snakeTakesItem(s.getId(), itemIndex);
+				//snakeTakesItem(s.getId(), itemIndex);
+				snakeCollidesItem(s.getId(), itemIndex);
 			else
 				 ++itemIndex;
 		}

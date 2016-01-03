@@ -1358,8 +1358,6 @@ public class Control
 
 	public void snakeDied(Snake s, Pointd collision)
 	{
-		assert !isClient() : "snakeDied() when client!";
-
 		if ( isHosting() )
 			networkControl_.sendSnakeDeath(s,collision);
 	}
@@ -1374,14 +1372,13 @@ public class Control
 	
 	public void snakeEncounteredItem(int snakeid, int itemid)
 	{
-		assert !isClient() : "snakeAcceptedItem() when client!";
-		
 		// TODO: accepted items should be taken at STEP
 		if (isHosting())
 			networkControl_.sendSnakeAcceptedItem(snakeid, itemid);
 
 		// replace by a new item
-		requestNewItem();
+		if ( isHosting() || isOffline() )
+			requestNewItem();
 	}
 	
 	public void onAcceptItem(int snakeIndex, int itemIndex)

@@ -410,7 +410,8 @@ public class LevelEditorControl
 	
 	public void onEscPressed()
 	{
-		cancelCurrent();
+		control_.showWelcomePanel();
+//		cancelCurrent();
 	}
 	
 	// DEL or BACKSP
