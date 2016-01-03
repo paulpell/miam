@@ -11,6 +11,7 @@ import org.paulpell.miam.logic.draw.items.Banana;
 import org.paulpell.miam.logic.draw.items.BananaSpecial;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.items.Lightning;
+import org.paulpell.miam.logic.draw.items.ResurrectAll;
 import org.paulpell.miam.logic.draw.items.ReversingItem;
 import org.paulpell.miam.logic.draw.items.ScoreItem;
 
@@ -24,7 +25,8 @@ public class ItemEncoder
 		BANANA_SPECIAL(new BananaSpecial(0,0)),
 		LIGHTNING(new Lightning(0,0)),
 		REVERSE(new ReversingItem(0,0)),
-		SCORE(new ScoreItem(0,0));
+		SCORE(new ScoreItem(0,0)),
+		RESURRECT_ALL(new ResurrectAll(0,0));
 		
 		private static byte nextEnc = 0;
 		
@@ -43,10 +45,7 @@ public class ItemEncoder
 		
 		public byte getEncoding() { return enc_; }
 		
-		public Item getInstance()
-		{
-			return instance_;
-		}
+		public Item getInstance() { return instance_; }
 		
 	};
 	
@@ -60,12 +59,14 @@ public class ItemEncoder
 		class2encoded_.put(Lightning.class, ItemEncodingEnum.LIGHTNING);
 		class2encoded_.put(ReversingItem.class, ItemEncodingEnum.REVERSE);
 		class2encoded_.put(ScoreItem.class, ItemEncodingEnum.SCORE);
+		class2encoded_.put(ResurrectAll.class, ItemEncodingEnum.RESURRECT_ALL);
 		
 		encoded2class_.put(ItemEncodingEnum.BANANA.getEncoding(), ItemEncodingEnum.BANANA);
 		encoded2class_.put(ItemEncodingEnum.BANANA_SPECIAL.getEncoding(), ItemEncodingEnum.BANANA_SPECIAL);
 		encoded2class_.put(ItemEncodingEnum.LIGHTNING.getEncoding(), ItemEncodingEnum.LIGHTNING);
 		encoded2class_.put(ItemEncodingEnum.REVERSE.getEncoding(), ItemEncodingEnum.REVERSE);
 		encoded2class_.put(ItemEncodingEnum.SCORE.getEncoding(), ItemEncodingEnum.SCORE);
+		encoded2class_.put(ItemEncodingEnum.RESURRECT_ALL.getEncoding(), ItemEncodingEnum.RESURRECT_ALL);
 	}
 	
 
