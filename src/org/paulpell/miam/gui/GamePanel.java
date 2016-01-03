@@ -15,6 +15,7 @@ import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import org.paulpell.miam.fx.GaussianBlur;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Arith;
 import org.paulpell.miam.logic.Constants;
@@ -22,6 +23,7 @@ import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Fonts;
 import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.Globals;
+import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.particles.VictoryParticleAnimation;
@@ -113,22 +115,10 @@ public class GamePanel extends AbstractDisplayPanel
 				|| (paintGameover_ && !gameoverWasDrawn_)
 				|| (paintPause_ && !pauseWasDrawn_)
 				;
-		
-		BufferedImage image;
-		Graphics2D imGr;
-
 		if (shouldRedraw)
-		{
-			image = redrawImage();
-			imGr = (Graphics2D)image.getGraphics();
-		}
-		else // ! shouldRedraw
-		{
-			// copy image
-			image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
-			image_.copyData(image.getRaster());
-			imGr = image.createGraphics();
-		}
+			image_ = redrawImage();
+
+		Graphics2D imGr = (Graphics2D)image_.getGraphics();
 		
 		// draw appropriate text if needed
 		if (paintVictory_)
@@ -138,7 +128,7 @@ public class GamePanel extends AbstractDisplayPanel
 		msgPainter_.paintMessages(imGr);
 		
 		// good. Now we can really paint
-		imagePanel_.setImage(image);
+		imagePanel_.setImage(image_);
 		imagePanel_.repaint();
 	}
 	
@@ -146,8 +136,8 @@ public class GamePanel extends AbstractDisplayPanel
 	{
 		int w = getWidth(), h = getHeight();
 		// re-create a new buffered image
-		image_ = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-		BufferedImage image = image_;
+		//image_ = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+		BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);//image_;
 		
 		Graphics2D imGr = image.createGraphics();
 		imGr.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -171,6 +161,15 @@ public class GamePanel extends AbstractDisplayPanel
 			paintGameOver(imGr);
 		else if (paintPause_)
 			paintPause(imGr);
+		
+		if ( Globals.USE_BLURRING)
+		{
+			long t1 = System.currentTimeMillis();
+			image = GaussianBlur.blurGameImg(image);
+			long t2 = System.currentTimeMillis();
+			long dt2 = t2 - t1;
+			Log.logMsg("Time for blurring: " + dt2);
+		}
 		
 		return image;
 	}
