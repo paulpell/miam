@@ -9,11 +9,16 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.beans.PropertyChangeListener;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import org.paulpell.gamezguitk.Button;
 import org.paulpell.miam.logic.Constants;
 
 @SuppressWarnings("serial")
@@ -43,11 +48,29 @@ public class TopPanel extends JPanel
 			@Override
 			public void actionPerformed(ActionEvent arg0)
 			{
-				mainFrame_.showWelcomePanel();
+				mainFrame_.control_.showWelcomePanel();
 			}
 		});
 		add(gamePanelButton_);
 		
+
+		
+		////////////// TEST
+		
+		Button b = new Button("exit", null);
+		b.setBackgroundColor(new Color(170, 23, 99, 58));
+		add (b);
+		AbstractAction a = new AbstractAction(){
+			@Override
+			public void actionPerformed(ActionEvent e) 
+			{
+				System.exit(0);
+			}
+		};
+		b.addAction(a);
+				
+				
+				
 
 		doLayout();
 		
@@ -68,8 +91,7 @@ public class TopPanel extends JPanel
 		super.paint(g);
 		
 		g.setColor(Constants.DRAGGER_COLOR);
-		g.fillRect(0, 0, dragWidth_, height_ - 3 );//- borderThickness_);
-		
+		g.fillRect(0, 0, dragWidth_, height_ - borderThickness_);
 	}
 
 	@Override

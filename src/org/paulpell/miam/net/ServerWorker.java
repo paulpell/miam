@@ -48,11 +48,17 @@ public class ServerWorker extends Thread{
 			}
 			catch (IOException e)
 			{
-				Log.logErr("ServerWorker ("+id_+") could not receive message: " + e.getLocalizedMessage());
-				Log.logException(e);
-				end();
+				if ( listening_ )
+					onSocketError (e, "can not receive");
 			}
 		}
+	}
+	
+	private void onSocketError (Exception e, String msg)
+	{
+		Log.logErr("Error in ServerWorker ("+id_+") " + msg);
+		Log.logException(e);
+		server_.onWorkerError(this, msg);
 	}
 	
 	public void end()
@@ -61,7 +67,6 @@ public class ServerWorker extends Thread{
 			Log.logMsg("ServerWorked (" + id_ + ") ending");
 		
 		listening_ = false;
-		server_.removeWorker(this);
 		try
 		{
 			socket_.close();
@@ -79,8 +84,7 @@ public class ServerWorker extends Thread{
 			NetMethods.sendMessage(socket_, message);
 		} catch (IOException e)
 		{
-			Log.logErr("ServerWorker (" +id_ + ") cannot send: " + e.getMessage());
-			
+			onSocketError (e, "can not send");
 		}
 	}
 	
@@ -94,6 +98,7 @@ public class ServerWorker extends Thread{
 		{
 			if (Globals.NETWORK_DEBUG)
 				Log.logMsg("ServerWorker (" +id_ + ") cannot forward, socket_ invalid");
+			onSocketError (null, "invalid socket");
 			return;
 		}
 		
@@ -103,8 +108,7 @@ public class ServerWorker extends Thread{
 			NetMethods.sendMessage(socket_, message);
 		} catch (IOException e)
 		{
-			Log.logErr("ServerWorker (" +id_ + ") cannot forward: " + e.getMessage());
-			
+			onSocketError (e, "cannot forward");
 		}
 	}
 	

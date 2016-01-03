@@ -83,9 +83,11 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 		
 		hostNewGameButton_ = new JButton("Host a game");
 		hostNewGameButton_.setMnemonic(VK_H);
-		hostNewGameButton_.addActionListener(new ActionListener() {
+		hostNewGameButton_.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent arg0) {
+			public void actionPerformed(ActionEvent arg0)
+			{
 				hostGame();
 			}
 		});
@@ -212,6 +214,13 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 	public void reset()
 	{
 		msgArea_.setText("");
+	}
+
+
+	@Override
+	public boolean canRemovePanel() 
+	{
+		return true;
 	}
 
 }

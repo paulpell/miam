@@ -3,7 +3,9 @@ package org.paulpell.miam.gui.settings;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -84,6 +86,26 @@ public class SnakeSettingsSubPanel extends Box
 	public SnakeSettingsSubPanel()
 	{
 		super(BoxLayout.Y_AXIS);
+
+		
+		
+		// ******************* classic mode
+		JPanel classicPanel = new JPanel();
+		JLabel clModeLabel = new JLabel("Classic mode (square):");
+		classicPanel.add(clModeLabel);
+		
+		final JCheckBox classicModeCB = new JCheckBox();
+		classicModeCB.setSelected(Globals.USE_CLASSIC_SNAKE);
+		classicModeCB.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				Globals.USE_CLASSIC_SNAKE = classicModeCB.isSelected();
+			}
+		});
+		classicPanel.add(classicModeCB);
+		add(classicPanel);
 		
 
 		// ******************** use width_ for snakes?

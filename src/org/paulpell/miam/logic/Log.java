@@ -61,8 +61,11 @@ public class Log
 	{
 		try
 		{
-			e.printStackTrace(printWriter_);
-			printWriter_.flush();
+			if ( null != e )
+			{
+				e.printStackTrace(printWriter_);
+				printWriter_.flush();
+			}
 		}
 		catch (Exception e2) {}
 	}

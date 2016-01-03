@@ -2,12 +2,12 @@ package org.paulpell.miam.logic;
 
 
 import java.awt.Dimension;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Vector;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.draw.Drawable;
+import org.paulpell.miam.logic.draw.items.GlobalEffectItem;
 import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.snakes.ClassicSnake;
 import org.paulpell.miam.logic.draw.snakes.Snake;
@@ -28,8 +28,10 @@ public class Game
 	
 	
 	// here we store all the game objects
-	protected Vector<Snake> snakes_;
-	private int aliveSnakes_;
+	protected Vector<Snake> allSnakes_; // this vector keeps the original order
+	protected Vector<Snake> aliveSnakes_;
+	protected Vector<Snake> deadSnakes_;
+
 	protected Vector<Item> items_;
 	
 	public Game(Control gc, Level level)
@@ -52,11 +54,13 @@ public class Game
 		items_ = level_.getInitialItems();
 		
 		// snakes 
-		snakes_ = new Vector<Snake>();
-		aliveSnakes_ = level_.getNumberSnakes();
+		deadSnakes_ = new Vector<Snake>();
+		aliveSnakes_ = new Vector<Snake>();
+
 		GameModesEnum mode = level_.getActualGameMode();
 		
-		for (int id=0; id<aliveSnakes_; ++id)
+		int numSnakes = level_.getNumberSnakes();
+		for (int id=0; id<numSnakes; ++id)
 		{
 			Pointd startPos = level_.getSnakeStartPosition(id);
 			int x = (int)startPos.x_;
@@ -76,23 +80,26 @@ public class Game
 			else
 				throw new IllegalArgumentException("Unacceptable game mode!");
 			
-			snakes_.add(s);
+			aliveSnakes_.add(s);
 		}
+		allSnakes_ = new Vector <Snake> (aliveSnakes_);
 	}
 	
 	
 	/* *************************************
 	 * Helper functions
 	 */
-	public int getNumberOfSnakes()
+
+	public Vector<Snake> getAllSnakes()
 	{
-		return snakes_.size();
+		return allSnakes_;
 	}
 	
-	public Vector<Snake> getSnakes()
+	public Vector<Snake> getDeadSnakes()
 	{
-		return snakes_;
+		return deadSnakes_;
 	}
+	
 	
 	public Vector<Item> getItems()
 	{
@@ -102,9 +109,7 @@ public class Game
 	
 	public Snake getSnake(int index)
 	{
-		if (index < snakes_.size() && index > -1)
-			return snakes_.get(index);
-		return null;
+		return allSnakes_.get(index);
 	}
 	
 	public void addItem(Item item)
@@ -124,7 +129,7 @@ public class Game
 		Vector<Drawable> drawables = new Vector<Drawable>();
 		
 		drawables.add(level_.getWall());
-		drawables.addAll(snakes_);
+		drawables.addAll(allSnakes_);
 		drawables.addAll(items_);
 		
 		return drawables.iterator();
@@ -133,88 +138,141 @@ public class Game
 	public void kill(Snake s, Pointd collision)
 	{
 		s.kill(collision);
-		--aliveSnakes_;
+		control_.snakeDied(s, collision);
+	}
+	
+	public void resurrectDeadSnakes()
+	{
+		for ( Snake s : deadSnakes_ )
+			s.resurrect();
+		aliveSnakes_.addAll(deadSnakes_);
+		deadSnakes_.clear();
+	}
+	
+	public void snakeTakesItem (int snakeIndex, int itemIndex)
+	{
+		control_.snakeEncounteredItem(snakeIndex, itemIndex);
+		
+		Item i = items_.remove(itemIndex);
+		if ( Item.ItemType.GLOBAL == i.getType() )
+			handleGlobalItem ((GlobalEffectItem)i);
+		else
+		{
+			Snake s = allSnakes_.get(snakeIndex);
+			s.acceptItem(i);
+		}
+	}
+	
+	public void handleGlobalItem ( GlobalEffectItem geItem )
+	{
+		geItem.globalEffect(this);
 	}
 	
 
 	/**************** The main function for a game, where snakes are moved */
 	
+	// in this function, we need to remove snakes or items from their
+	// vectors. We do it only after the loop, or ConcurrentBlahBlahException.
 	public void update()
 	{
-		
 		// we check this here, so the final step can be drawn (paint is called one last time after previous update())
-		if (aliveSnakes_ == 0)
+		if ( 0 == aliveSnakes_.size() )
 			control_.endGame();
 		
-		
 		// advance the snakes
-
-		String pos = "Posdir";
-		for (Enumeration<Snake> e = snakes_.elements(); e.hasMoreElements();)
-		{
-			Snake s = e.nextElement();
-			s.advance(this);
-			pos += s.getId() + ": " + s.getHead()+ ";" + s.getDirection() + "|";
-		}
-		Log.logMsg(pos);
+		advanceSnakes();
 		
-		final Wall wall = level_.getWall();
-		Pointd collision;
 		Vector <Snake> victoriousSnakes = new Vector <Snake> ();
+		Vector <Snake> copiedSnakes = new Vector <Snake> (aliveSnakes_);
 		// check for collisions..
-		for (Enumeration<Snake> e = snakes_.elements(); e.hasMoreElements();)
+		for ( Snake s : copiedSnakes )
 		{
-			Snake s = e.nextElement();
-			// if the snake is dead, we don't care
-			if (s.isAlive())
+			assert s.isAlive() : "";
+
+			// first check whether the player made a fault
+			if ( null != checkCollisions(s) )
 			{
-				
-				// .. against the wall
-				collision = wall.isSnakeColliding(s);
-				if (collision != null)
-					control_.snakeDied(s, collision);
-				
-				else
-				{
-					// .. and against the other snakes
-					for  (Enumeration<Snake> e2 = snakes_.elements(); e2.hasMoreElements(); )
-					{
-						Snake s2 = e2.nextElement();
-						collision = s2.isSnakeColliding(s);
-						if (collision != null)
-						{
-							control_.snakeDied(s, collision);
-							break;
-						}
-					}
-				}
-				
-			}
-			// .. check the items
-			if (s.isAlive())
-			{ // s might have died in between
-				for (Enumeration<Item> its = items_.elements(); its.hasMoreElements(); )
-				{
-					Item item = its.nextElement();
-					collision = item.isSnakeColliding(s);
-					if (collision != null)
-						control_.snakeAcceptedItem(s, item);
-				}
+				aliveSnakes_.remove(s);
+				deadSnakes_.add(s);
 			}
 			
-			// check victory:
-			// this way, a dead snake can win, ie.
+			// A snake dying on an item also receives it
+			checkItems (s);
+			
+			// Check victory only here.
+			// This way, a dead snake can win, ie.
 			// a sacrifice is worth it
-			Vector <VictoryCondition> vcs = level_.getVictoryConditions(); 
-			boolean snakeWon = vcs.size() > 0;
-			for (VictoryCondition vc : vcs)
-				snakeWon &= vc.checkVictory(s);
-			if (snakeWon)
+			if (doesSnakeWin(s))
 				victoriousSnakes.add(s);
 		}
 		
+		// announce the winners
 		if (victoriousSnakes.size() > 0)
 			control_.snakesWon(victoriousSnakes);
-			
+		
+		if ( Globals.SNAKE_DEBUG)
+		{
+			for (Snake s : deadSnakes_)
+				if  (s.isAlive())
+					Log.logErr("Alive snakes in dead list!");
+			for (Snake s : aliveSnakes_) 
+				if ( ! s.isAlive() )
+					Log.logErr("Dead snakes in alive list!");
+		}
+	}
+	
+	protected final void advanceSnakes ()
+	{
+		for ( Snake s : aliveSnakes_ )
+			s.advance(this);
+	}
+	
+	private final Pointd checkCollisions (Snake s)
+	{
+		// .. against the wall
+		final Wall wall = level_.getWall();
+		Pointd collision = wall.isSnakeColliding(s);
+		if (collision != null)
+		{
+			kill (s, collision);
+			return collision;
+		}
+		// and the other snakes
+		for  ( Snake s2 : allSnakes_ )
+		{
+			collision = s2.isSnakeColliding(s);
+			if (collision != null)
+			{
+				kill (s, collision);
+				return collision;
+			}
+		}
+		return null;
+	}
+	
+	private final void checkItems (Snake s)
+	{
+		int itemIndex = 0;
+		Vector <Item> items2 = new Vector<Item> (items_);
+		for (Iterator<Item> it = items2.iterator(); it.hasNext() ; )
+		{
+			Item item = it.next();
+			if ( null != item.isSnakeColliding(s) )
+				snakeTakesItem(s.getId(), itemIndex);
+			else
+				 ++itemIndex;
+		}
+	}
+	
+	private final boolean doesSnakeWin (Snake s)
+	{
+		Vector <VictoryCondition> vcs = level_.getVictoryConditions(); 
+		if ( 0 == vcs.size() )
+			return false; // no condition ? Cannot win
+		for (VictoryCondition vc : vcs)
+			if ( ! vc.checkVictory(s) )
+				return false; // must satisfy all
+		// here all conditions are ok
+		return true;
 	}
 }

@@ -1,5 +1,6 @@
 package org.paulpell.miam.logic.levels;
 
+import java.awt.Dialog.ModalityType;
 import java.awt.FileDialog;
 import java.io.File;
 import java.io.FileInputStream;
@@ -71,7 +72,8 @@ public class LevelFileManager
 	{
 		FileDialog saveDialog = new FileDialog(parent, "Save level", FileDialog.SAVE);
 		saveDialog.setDirectory(Constants.LEVEL_FOLDER);
-
+		saveDialog.setMultipleMode(false);
+		saveDialog.setModalityType(ModalityType.APPLICATION_MODAL);
 		saveDialog.toFront();
 		saveDialog.setVisible(true);
 		
@@ -121,13 +123,11 @@ public class LevelFileManager
 		FileDialog openDialog = new FileDialog(parent, "Choose level", FileDialog.LOAD);
 		openDialog.setMultipleMode(false);
 		openDialog.setDirectory(Constants.LEVEL_FOLDER);
-		
+		openDialog.setModalityType(ModalityType.APPLICATION_MODAL);
 		openDialog.toFront();
-		
 		openDialog.setVisible(true);
 		
 		File[] f = openDialog.getFiles();
-		
 		if (f.length == 0)
 			return null;
 		

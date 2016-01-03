@@ -13,9 +13,13 @@ public class Level
 	
 	public enum GameModesEnum
 	{
-		CLASSIC,
-		MODERN,
-		BOTH
+		CLASSIC ("Classic"),
+		MODERN("Modern"),
+		BOTH("Any");
+		
+		String repr_;
+		private GameModesEnum(String str) { repr_ = str; }
+		public String toString() { return repr_; }
 	};
 	
 	protected GameSettings gameSettings_;

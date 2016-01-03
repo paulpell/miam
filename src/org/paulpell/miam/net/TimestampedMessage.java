@@ -22,6 +22,9 @@ public class TimestampedMessage
 		ERROR(				"ERROR",				CONTROL_MSG_MASK | 4),
 		SET_ID(				"SET_ID", 				CONTROL_MSG_MASK | 5),
 		CLIENT_LIST(		"CLIENT_LIST",			CONTROL_MSG_MASK | 6),
+		ADD_PLAYER_REQUEST(	"ADD_PLAYER_REQUEST",	CONTROL_MSG_MASK | 7),
+		ADD_PLAYER_DENY(	"ADD_PLAYER_REQUEST",	CONTROL_MSG_MASK | 8),
+		PLAYER_LIST(		"PLAYER_LIST",			CONTROL_MSG_MASK | 9),
 		
 		// game messages
 		ACCEPT_ITEM(		"ACCEPT_ITEM", 			GAME_MSG_MASK | 0),
@@ -59,6 +62,7 @@ public class TimestampedMessage
 		}
 	}
 	
+	
 	public final int timestamp_;
 	public final MsgTypes type_;
 	public final int from_;
@@ -78,6 +82,7 @@ public class TimestampedMessage
 		
 		this.payload_ = message;
 	}
+	
 	
 	public String toString()
 	{

@@ -4,15 +4,20 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-
-import javax.swing.JFrame;
+import java.util.TimerTask;
 
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.logic.Constants;
+import org.paulpell.miam.logic.GameSettings;
+import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Utils;
 import org.paulpell.miam.logic.draw.particles.VictoryParticleAnimation;
 import org.paulpell.miam.logic.draw.particles.VictoryParticleAnimator;
+import org.paulpell.miam.logic.draw.snakes.auto.AutoAction;
+import org.paulpell.miam.logic.draw.snakes.auto.AutoActionType;
+import org.paulpell.miam.logic.draw.snakes.auto.AutoSnake;
 
 
 public class WelcomePanel extends AbstractDisplayPanel
@@ -55,11 +60,15 @@ public class WelcomePanel extends AbstractDisplayPanel
 		
 	}
 	
-	VictoryParticleAnimator particleAnimator_;
+	MainFrame mainFrame_;
 	
-	WelcomePanel(String title, JFrame parent)
+	VictoryParticleAnimator particleAnimator_;
+	AutoSnake autoSnake_;
+	
+	WelcomePanel(String title, MainFrame parent)
 	{
 		super(title, parent);
+		mainFrame_ = parent;
 		setPreferredSize(new Dimension(Constants.DEFAULT_IMAGE_WIDTH, Constants.DEFAULT_IMAGE_HEIGHT));
 	}
 	
@@ -80,20 +89,58 @@ public class WelcomePanel extends AbstractDisplayPanel
 	
 	public void startAnimating()
 	{
-		createParticles();
-		particleAnimator_.start();
+		if ( ! Globals.USE_ANIMATIONS )
+			return;
+		
+		if ( Globals.USE_PARTICLE_ANIMATIONS )
+		{
+			createParticles();
+			particleAnimator_.start();
+		}
+		
+		autoSnake_ = new AutoSnake(0, GameSettings.getCurrentSettings(), s_x-34, s_y + 7*s_delta, 0);
+		autoSnake_.addAction(new AutoAction(AutoActionType.GO_STRAIGHT, 2));
+		autoSnake_.addAction(new AutoAction(AutoActionType.TURN_RIGHT, 2));
+		GlobalAnimationTimer.scheduleRepeatedTask(
+				autoSnake_.makeTimerTask(null, mainFrame_), 0, 30);
 	}
 	
 	public void paint(Graphics imGr)
 	{
 		imGr.drawImage(s_image, 0, 0, null);
-		particleAnimator_.drawParticles(imGr);
+
+		if ( null != particleAnimator_)
+			particleAnimator_.drawParticles(imGr);
+		
+		if ( null != autoSnake_ )
+			autoSnake_.draw((Graphics2D)imGr);
+		
+		
+		
+		
+		
 	}
 
 	@Override
 	public void displayMessage(String message)
 	{
 		// do nothing
+	}
+
+	@Override
+	public boolean canRemovePanel()
+	{
+		return true;
+	}
+
+	@Override
+	public void panelRemoved()
+	{
+		if ( null != autoSnake_ )
+		{
+			TimerTask tt = autoSnake_.getTimerTask();
+			if ( null != tt ) tt.cancel();
+		}
 	}
 
 

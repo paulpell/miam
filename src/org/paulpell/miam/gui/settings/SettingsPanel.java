@@ -32,5 +32,11 @@ public class SettingsPanel extends AbstractDisplayPanel
 	{
 		// do nothing
 	}
+
+	@Override
+	public boolean canRemovePanel()
+	{
+		return true;
+	}
 	
 }

@@ -4,7 +4,6 @@ package org.paulpell.miam.net;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Vector;
@@ -53,6 +52,16 @@ public class Client
 		control_ = control;
 	}
 	
+	public InetAddress getAddr()
+	{
+		return addr_;
+	}
+	
+	public int getClientId()
+	{
+		return clientId_;
+	}
+	
 	public void connect(InetAddress addr)
 			throws IOException
 	{
@@ -79,7 +88,7 @@ public class Client
 			try 
 			{
 				if (!socket_.isClosed())
-					sendMessage(MsgTypes.CLIENT_LEAVES, null);
+					sendMessage(MsgTypes.CLIENT_LEAVES, "quit".getBytes());
 			}
 			catch (IOException e) {
 				// what can we do more?
@@ -203,19 +212,27 @@ public class Client
 		switch (msg.type_)
 		{
 		case CHAT_MESSAGE:
-			control_.displayChatMessage(new String(payload), msg.from_);
+			control_.receiveChatMessage(msg);
 			break;
 			
 		case CLIENT_LEAVES:
-			control_.clientLeft(msg.from_);
+			receiveClientLeaves(msg.from_, payload);
 			break;
 			
 		case CLIENT_LIST:
-			receiveClientsList(new String(payload));
+			receiveClientsList(payload);
+			break;
+			
+		case ADD_PLAYER_REQUEST:
+			receivePlayerAddRequest(payload);
+			break;
+			
+		case PLAYER_LIST:
+			receivePlayersList (payload);
 			break;
 			
 		case CLIENT_REJECTED:
-			control_.rejected();
+			control_.onConnectionLost(true);
 			break;
 			
 		case ERROR:
@@ -224,7 +241,7 @@ public class Client
 			
 			
 		case SERVER_STOPS:
-			control_.serverStops();
+			control_.onConnectionLost(false);
 			break;
 			
 		case SET_ID:
@@ -236,11 +253,6 @@ public class Client
 				Log.logErr("Unknown control command: |" + msg + "|");
 			
 		}
-	}
-	
-	public InetAddress getAddr()
-	{
-		return addr_;
 	}
 	
 	public void sendAction(SnakeAction a)
@@ -258,12 +270,10 @@ public class Client
 		}
 	}
 
-
 	public void sendChatMessage(String message)
 			throws IOException
 	{
 		sendMessage(MsgTypes.CHAT_MESSAGE, message.getBytes());
-		control_.displayChatMessage(message, clientId_);
 	}
 
 	public void sendErrorMessage() 
@@ -296,11 +306,6 @@ public class Client
 			Log.logMsg("Client sets id = " + clientId_);
 	}
 	
-	
-	public int getServerId()
-	{
-		return clientId_;
-	}
 	
 	protected void sendMessage(MsgTypes type, byte[] payload)
 			throws IOException
@@ -411,20 +416,18 @@ public class Client
 		String msg = "" + (char)clients.size();
 		for (ClientInfo ci: clients)
 		{
-			String cmsg = new String(NetMethods.int2bytes(ci.getClientId()));
-			String cname = ci.getName();
-			cmsg += (char)cname.length() + cname;
-			
-			ArrayList <PlayerInfo> pis = ci.getPlayerInfos();
-			cmsg += (char)pis.size();
-			
-			for (PlayerInfo pi: pis)
-			{
-				cmsg += new String(NetMethods.int2bytes(pi.getSnakeId()));
-				String pname = pi.getName();
-				cmsg += (char)pname.length() + pname;
-			}
-			msg += cmsg;
+			byte[] id = NetMethods.int2bytes(ci.getClientId());
+			//String cname = ci.getName();
+			byte[] namebs = ci.getName().getBytes();
+			int namebslen = namebs.length;
+
+			//byte[] bs = new byte[5 + cname.length()];
+			byte[] bs = new byte[5 + namebslen];
+			NetMethods.setSubBytes(id, bs, 0, 4);
+			bs[4] = (byte)namebslen;
+			//NetMethods.setSubBytes(cname.getBytes(), bs, 5, 5 + cname.length());
+			NetMethods.setSubBytes(namebs, bs, 5, 5 + namebslen);
+			msg += new String(bs);
 		}
 		
 		try
@@ -436,31 +439,92 @@ public class Client
 			control_.networkFeedback("Can not send clients list: " + e.getLocalizedMessage());
 		}
 	}
-	
-	private void receiveClientsList(String msg)
+
+	public void sendAddPlayerRequest ( PlayerInfo pi )
 	{
-		HashMap <Integer, ClientInfo> clientId2Infos = new HashMap<Integer, ClientInfo>();
+		MsgTypes type = MsgTypes.ADD_PLAYER_REQUEST;
+		try
+		{
+			byte[] buf = OnlineInfoEncoder.encodePlayerInfo(pi);
+			sendMessage(type, buf);
+		}
+		catch (IOException e)
+		{
+			Log.logErr ( "cannot send " + type + ": " + e.getMessage());
+			Log.logException(e);
+		}
+	}
+	
+	private void receivePlayerAddRequest ( byte[] buf )
+	{
+		PlayerInfo pi = OnlineInfoEncoder.decodePlayerInfo(buf);
+		control_.playerAddRequested(pi);
+	}
+	
+	public void sendPlayersList (Vector<PlayerInfo> players, Vector<Integer> unusedIds)
+	{
+		byte[] buf1 = new byte[1];
+		buf1[0] = (byte)players.size();
+		for (PlayerInfo pi : players)
+		{
+			int i0 = buf1.length;
+			byte[] pibs = OnlineInfoEncoder.encodePlayerInfo(pi);
+			byte[] buf2 = new  byte[i0 + 1 + pibs.length];
+			System.arraycopy(buf1, 0, buf2, 0, i0);
+			buf2[i0] = (byte)pibs.length;
+			System.arraycopy(pibs, 0, buf2, i0 + 1, pibs.length);
+			
+			buf1 = buf2;
+		}
+		try
+		{
+			sendMessage(MsgTypes.PLAYER_LIST, buf1);
+		}
+		catch (Exception e)
+		{
+			control_.networkFeedback("Can not send players list: " + e.getLocalizedMessage());
+		}
+	}
+	
+	private void receivePlayersList (byte[] buf)
+	{
+		int n = 0xFF & buf[0];
+		Vector<PlayerInfo> pis = new Vector<PlayerInfo>();
+		int i0 = 1;
+		for (int i=0; i<n; ++i)
+		{
+			int pilen = 0xFF & buf[i0];
+			byte[] pibs = NetMethods.getSubBytes(buf, i0+1, i0+1+pilen);
+			pis.add ( OnlineInfoEncoder.decodePlayerInfo(pibs));
+			i0 += 1+pilen;
+		}
+		control_.setPlayerInfos(pis);
+	}
+	
+	private void receiveClientLeaves(int cid, byte[] payload)
+	{
+		String msg = null == payload ? "" : new String(payload);
+		control_.clientLeft(cid, msg);
+	}
+	
+	private void receiveClientsList(byte[] payload)
+	{
+		/*HashMap <Integer, ClientInfo> clientId2Infos = new HashMap<Integer, ClientInfo>();
 		int nr = (int)msg.charAt(0);
-		msg = msg.substring(1);
+		byte[] encoded = msg.getBytes();
+		int index = 1;
 		for (int i=0; i<nr; ++i)
 		{
-			int cid = NetMethods.bytes2int(msg.substring(0,4).getBytes());
-			int cnamelen = (int)msg.charAt(4);
-			String cname = msg.substring(5, 5 + cnamelen);
-			ClientInfo ci = new ClientInfo(cid, cname);
-			int nrpi = (int)msg.charAt(cnamelen + 5);
-			msg = msg.substring(cnamelen + 6);
-			for (int j=0; j<nrpi; ++j)
-			{
-				int sid = NetMethods.bytes2int(msg.substring(0, 4).getBytes());
-				int snamelen = (int)msg.charAt(4);
-				String sname = msg.substring(5, 5 + snamelen);
-				PlayerInfo pi = new PlayerInfo(sname, sid);
-				ci.addPlayerInfo(pi);
-				msg = msg.substring(5 + snamelen);
-			}
-			clientId2Infos.put(cid, ci);
-		}
+			byte[] idbs = NetMethods.getSubBytes(encoded, index, index+4);
+			int id = NetMethods.bytes2int(idbs);
+			int namelen = (int)(0xFF & encoded[index+4]);
+			byte[] namebs = NetMethods.getSubBytes(encoded, index + 5, index + 5 + namelen);
+			String name = new String(namebs);
+			ClientInfo ci = new ClientInfo(id, name);
+			clientId2Infos.put(id, ci);
+			index += 5 + namelen;
+		}*/
+		HashMap <Integer, ClientInfo> clientId2Infos = ClientInfo.makeNetClientList(payload);
 		control_.setClientInfos(clientId2Infos);
 	}
 

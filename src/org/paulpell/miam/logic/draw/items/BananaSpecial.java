@@ -11,15 +11,13 @@ import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
-public class BananaSpecial extends SpecialItem
+public class BananaSpecial extends StockItem
 {
 	
 	
 	private static ImageIcon s_image = new ImageIcon("images/BananaSpecial.png");
 	private static int s_width = s_image.getIconWidth();
 	private static int s_height = s_image.getIconHeight();
-	
-	//Game game_;
 	
 	// for network, as nothing can be random:
 	// it is initialized on master, and sent as extra param, so the bananas on all

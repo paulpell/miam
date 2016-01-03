@@ -3,9 +3,6 @@ package org.paulpell.miam.logic.draw.items;
 
 import javax.swing.ImageIcon;
 
-import org.paulpell.miam.logic.Globals;
-import org.paulpell.miam.logic.Log;
-
 
 /**
  * Contains all the possible items, but the score_ items.
@@ -22,6 +19,7 @@ public class AllTheItems
 		new Lightning(0,0),
 		new ScoreItem(0, 0),
 		new ReversingItem(0,0),
+		new ResurrectAll(0, 0)
 	};
 	
 	public final static int INDEX_BANANA = 0;
@@ -29,7 +27,8 @@ public class AllTheItems
 	public final static int INDEX_LIGHTNING = 2;
 	public final static int INDEX_SCORE = 3;
 	public final static int INDEX_REVERSO = 4;
-	public final static int INDEX_LAST = INDEX_REVERSO; // !!!!!! update this
+	public final static int INDEX_RESURRECT_ALL = 5;
+	public final static int INDEX_LAST = INDEX_RESURRECT_ALL; // !!!!!! update this
 	
 	
 	// weight set for each item. At the beginning, uniform distribution
@@ -74,16 +73,7 @@ public class AllTheItems
 			
 			// if p is inside the prob interval for this item, return it
 			if (p >= p_low && p < p_high)
-			{
-				if (items[i] instanceof Banana && Globals.NETWORK_DEBUG)
-				{
-					Item i2 = (Item)items[i].newItem(x, y);
-					if (Globals.DEBUG)
-						Log.logMsg("Cloned banana, old = " + items[i] + ", new = " + i2);
-					return i2;
-				}
 				return (Item)items[i].newItem(x, y);
-			}
 
 			p_low = p_high;
 		}

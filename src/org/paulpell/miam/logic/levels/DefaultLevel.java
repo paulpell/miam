@@ -13,7 +13,7 @@ public class DefaultLevel extends Level
 	{
 		super(settings, Constants.DEFAULT_LEVEL_NAME);
 		wall_ = new DefaultWall();
-		setActualGameMode(GameModesEnum.MODERN);
+		//setActualGameMode(GameModesEnum.MODERN);
 			
 		maxNumSnakes_ = Constants.MAX_NUMBER_OF_SNAKES;
 		minNumSnakes_ = 1;
@@ -45,8 +45,8 @@ public class DefaultLevel extends Level
 			addInitialItem(new ScoreItem(x0, y0));
 		}
 		
-		//victoryConditions_.add(new ScoreVictoryCondition(50));
-		victoryConditions_.add(new ScoreVictoryCondition(1));
+		victoryConditions_.add(new ScoreVictoryCondition(150));
+		//victoryConditions_.add(new ScoreVictoryCondition(1));
 	}
 
 }

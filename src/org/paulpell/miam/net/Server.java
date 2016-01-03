@@ -104,13 +104,28 @@ public class Server extends Thread
 		}
 	}
 	
-
-	public void removeWorker(ServerWorker serverWorker)
+	public void removeClient (int cid)
 	{
+		for ( ServerWorker sw : serverWorkers_ )
+		{
+			if ( cid == sw.getClientId() )
+			{
+				serverWorkers_.remove(sw);
+				sw.end();
+				break;
+			}
+		}
+	}
+	
+	public void onWorkerError (ServerWorker sw, String msg)
+	{
+		int id = sw.getClientId();
 		if (Globals.NETWORK_DEBUG)
-			Log.logMsg("Server removes ServerWorker(" + serverWorker.getClientId() + ")");
+		{
+			Log.logMsg("Error ServerWorker(" + id + ")");
+		}
 		
-		serverWorkers_.remove(serverWorker);
+		control_.clientError(id, msg);
 	}
 	
 	public void end()
@@ -169,13 +184,42 @@ public class Server extends Thread
 		masterClient_.handleMessage(message);
 	}
 	
-	public void broadcastToSlave(TimestampedMessage message)
+	public void broadcastToSlaves(TimestampedMessage message)
 	{
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Server.broadcastToSlaves: " + message);
 		
 		for (ServerWorker sw : serverWorkers_)
 			sw.forwardMessage(message);
+	}
+	
+	public void broadcastToSlavesExcept(TimestampedMessage message, int id_except)
+	{
+		if (Globals.NETWORK_DEBUG)
+			Log.logMsg("Server.broadcastToSlaves: " + message);
+		
+		for (ServerWorker sw : serverWorkers_)
+		{
+			if ( id_except != sw.getClientId() )
+				sw.forwardMessage(message);
+		}
+	}
+	
+	protected void sendIndividualMessage ( int clientId, TimestampedMessage tmsg)
+	{
+		if (clientId >= 0 && clientId < serverWorkers_.size())
+		{
+			try
+			{
+				ServerWorker sw = serverWorkers_.get(clientId);
+				sendServerCommand (sw, tmsg);
+			}
+			catch (IOException e)
+			{
+				Log.logErr("Cannot send individual message: " + e.getMessage());
+				Log.logException(e);
+			}
+		}
 	}
 	
 	private void reject(ServerWorker sw)
@@ -208,10 +252,5 @@ public class Server extends Thread
 	{
 		return 0;
 	}
-	
-	/*public String getCanonicalName()
-	{
-		return serverSocket_.getInetAddress().getCanonicalHostName();
-	}*/
 
 }

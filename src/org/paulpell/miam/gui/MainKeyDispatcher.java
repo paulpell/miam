@@ -24,10 +24,15 @@ public class MainKeyDispatcher implements KeyEventDispatcher
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e)
 	{
-		boolean ctrl = 0 != (e.getModifiers() & Event.CTRL_MASK);
+		// if alt or ctrl, let Java do the job =)
+		int mod = e.getModifiers();
+		if (0 != (mod & Event.CTRL_MASK))
+			return false;
+		if (0 != (mod & Event.ALT_MASK))
+			return false;
 		
 		
-		KeyListener kl = control_.whoShouldReceiveKeyEvents(ctrl);
+		KeyListener kl = control_.whoShouldReceiveKeyEvents(e);
 		if (null != kl)
 		{
 			KeyStroke ks = KeyStroke.getKeyStrokeForEvent(e);

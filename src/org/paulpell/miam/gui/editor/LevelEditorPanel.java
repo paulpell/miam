@@ -27,15 +27,11 @@ public class LevelEditorPanel
 	final DrawPanelMouseHandler mouseHandler_;
 	final EditorToolsPanel toolsPanel_;
 	
-	LevelEditorMenuBar menubar_;
-	
 	public LevelEditorPanel(LevelEditorControl control, JFrame parent)
 	{
 		super("Snakesss - Level editor", parent);
-		
 		leControl_ = control;
 		
-
 		// draw stuff
 		int width = leControl_.getWidth();
 		int height = leControl_.getHeight();
@@ -43,15 +39,12 @@ public class LevelEditorPanel
 		drawPanel_.setPreferredSize(new Dimension(width, height));
 		add(drawPanel_, BorderLayout.WEST);
 		
-		
 		// mouse move, mouse click
 		mouseHandler_ = new DrawPanelMouseHandler(leControl_);
 		drawPanel_.addMouseListener(mouseHandler_);
 		drawPanel_.addMouseMotionListener(mouseHandler_);
 		
-		
 		// and the available tools
-		
 		toolsPanel_ = new EditorToolsPanel(leControl_);
 		add(toolsPanel_, BorderLayout.EAST);
 	}
@@ -79,11 +72,11 @@ public class LevelEditorPanel
 		{
 		case KeyEvent.VK_DELETE:
 		case KeyEvent.VK_BACK_SPACE:
-			leControl_.deleteSelected();
+			leControl_.onErasePressed();
 			break;
 			
 		case KeyEvent.VK_ESCAPE:
-			leControl_.cancelCurrent();
+			leControl_.onEscPressed();
 			break;
 		}
 	}

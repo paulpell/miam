@@ -6,18 +6,26 @@ package org.paulpell.miam.logic;
 
 public class Globals
 {
-	
+
+	//****************************************************************
+	//************************* DEBUG FLAGS
 	public static boolean DEBUG = true;
 
 	public static boolean ACTION_DEBUG = DEBUG && false;
 	public static boolean NETWORK_DEBUG = DEBUG && false;
 	public static boolean CLASSIC_DEBUG = DEBUG && false;
-	public static boolean SNAKE_DEBUG = DEBUG && false;
+	public static boolean SNAKE_DEBUG = DEBUG && true;
 
+	
+
+	//****************************************************************
+	//************************* CPU / GRAPHICS
 	public static int FPS = 25;
 	public static int FPS_MIN = 5;
 	public static int FPS_MAX = 30;
 	
+	public static boolean USE_ANIMATIONS = true;
+	public static boolean USE_PARTICLE_ANIMATIONS = false;
 	
 	
 	//****************************************************************
@@ -26,7 +34,7 @@ public class Globals
 	public static int SNAKE_NORMAL_SPEED = Constants.INIT_SNAKE_SPEED; // [1,10]
 	public static int SNAKE_EXTRA_SPEEDUP = 4;
 	public static int SNAKE_ANGLE_SPEED_FACTOR = 4;
-	public static long SNAKE_TIME_BETW_TURNS_MILLIS = 100; // in classic mode
+	public static long SNAKE_TIME_BETW_TURNS_MILLIS = 350; // in classic mode
 	
 	public static boolean SNAKE_USE_WIDTH				 = true;
 	public static double SNAKE_DIST_BETWEEN_SEGMENTS = 10; // for nicer drawing
@@ -59,7 +67,7 @@ public class Globals
 	
 	public final static int ONLINE_PORT = 13913;
 	// number of players and of clients is different...
-	public static int ONLINE_DEFAULT_PLAYER_MAX_NUMBER = 2;
+	public static int ONLINE_DEFAULT_MAX_PLAYER_NUMBER = 2;
 	public static int ONLINE_DEFAULT_CLIENT_MAX_NUMBER = 5;
 	
 }

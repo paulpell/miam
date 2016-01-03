@@ -14,6 +14,7 @@ import org.paulpell.miam.geom.GeometricObject;
 import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Vector2D;
+import org.paulpell.miam.gui.GlobalColorTable;
 import org.paulpell.miam.logic.Arith;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Game;
@@ -22,7 +23,7 @@ import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.items.Item;
-import org.paulpell.miam.logic.draw.items.SpecialItem;
+import org.paulpell.miam.logic.draw.items.StockItem;
 
 
 
@@ -43,19 +44,8 @@ public class Snake extends Drawable
 	/* Static constants/functions ***************************/
 	
 	
-	// some default s_snakesColors
-	final public static Color[] s_snakesColors =
-		{
-			new Color(160, 20, 50),
-			new Color(50, 140, 20),
-			new Color(30, 30, 190),
-			new Color(185, 75, 210),
-			new Color(130, 100, 10)
-		};
-	final private static Color s_deadColor = new Color(200,200,9);
 	
-	
-	private int x0_, y0_;
+	private int x0_, y0_; // only used for initial position
 	
 	
 	
@@ -95,7 +85,7 @@ public class Snake extends Drawable
 	
 	//  the special item is the one the player can use
 	// for now, let's accept only one SpecialItem per snake
-	SpecialItem specialItem_;
+	StockItem specialItem_;
 	boolean wantUseSpecial_ = false; // set when player uses 'special' key, item activated in advance()
 	
 	// we also have a list of items having effect on the snake
@@ -134,7 +124,7 @@ public class Snake extends Drawable
 	{
 		speed_ = settings_.snakeSpeed_;
 		angleDiff_ = speed_ * settings_.snakeAngleSpeedFactor_;
-		color_ = s_snakesColors[id_];
+		color_ = GlobalColorTable.getSnakeColor(id_);
 		computeDs();
 		previousHead_ = new Pointd(x0_, y0_); 
 		points_.add(previousHead_);
@@ -215,20 +205,27 @@ public class Snake extends Drawable
 		wantUseSpecial_ = true; // we'll use it at the beginning of advance()
 	}
 	
-	public void acceptItem(Item it)
+	public void acceptItem(Item item)
 	{
-		if (it instanceof SpecialItem)
+		switch (item.getType())
 		{
-			specialItemChanged_ = true;
-			specialItem_ = (SpecialItem)it;
-		}
-		else // normal item
-		{
+		case SIMPLE:
 			itemsChanged_ = true;
-			it.startEffect(this);
-			items_.add(it);
+			item.startEffect(this);
+			items_.add(item);
+			break;
+			
+		case STOCK:
+			specialItemChanged_ = true;
+			specialItem_ = (StockItem)item;
+			break;
+			
+		case GLOBAL:
+			assert false : "Global items can not be handled by Snake";
+			break;
 		}
 	}
+	
 	public boolean itemsChanged() { // used in SnakeInfoPanel.update()
 		return itemsChanged_;
 	}
@@ -489,19 +486,8 @@ public class Snake extends Drawable
 			points_.removeLast();
 	}
 	
-
-	/* ************ one step for the snake ***************/
-	// the head shall advance, as well as the tail
-	/**
-	 * Advances the snake by one step, using dx_, dy_ and calls updateTurn().
-	 * This function also handles the items. It finally calls computeHull().
-	 * 
-	 */
-	public void advance(Game game)
+	private void updateItems (Game game)
 	{
-		
-		// Handle the items; works since Snake receives items after advancing 
-
 		specialItemChanged_ = false;
 		if (wantUseSpecial_)
 		{
@@ -527,29 +513,39 @@ public class Snake extends Drawable
 				itemsChanged_ = true;
 			}
 		}
-		
-		
-		
-		// Now the snake can move!
+	}
+	
+
+	/* ************ one step for the snake ***************/
+	// the head shall advance, as well as the tail
+	/**
+	 * Advances the snake by one step, using dx_, dy_ and calls updateTurn().
+	 * This function also handles the items. It finally calls computeHull().
+	 * 
+	 */
+	public void advance(Game game)
+	{
+		// Handle the items; works since Snake receives items after advancing 
+		 updateItems (game);
 		
 		// dead or immobile snakes don't move!!!
 		if (!isAlive_ || speed_ == 0)
 			return;
 
-		
+		// Now the snake can move!
 		// set the variables for turning
 		updateTurn();
 
 		// advance the head
 		{
-		Pointd head = points_.getFirst();
-		if (Globals.SNAKE_DEBUG)
-			Log.logErr("  advance head; old = " + head);
-		previousHead_ = head.clone();
-		head.x_ += dx_;
-		head.y_ += dy_;
-		if (Globals.SNAKE_DEBUG)
-			Log.logErr("  advance head; new = " + head);
+			Pointd head = points_.getFirst();
+			if (Globals.SNAKE_DEBUG)
+				Log.logErr("  advance head; old = " + head);
+			previousHead_ = head.clone();
+			head.x_ += dx_;
+			head.y_ += dy_;
+			if (Globals.SNAKE_DEBUG)
+				Log.logErr("  advance head; new = " + head);
 		}
 
 
@@ -571,10 +567,15 @@ public class Snake extends Drawable
 			
 			advanceTail(s);
 		}
+
+		if ( Globals.SNAKE_DEBUG)
+		{
+			String dbgPos = "snake(" + id_ + ") pos+dir: " + getHead()+ ";" + getDirection() + "|";
+			Log.logMsg(dbgPos);
+		}
 		
 		computeHull();
 	}
-	
 
 
 	/* Drawable methods *******************************************/
@@ -619,7 +620,7 @@ public class Snake extends Drawable
 		if (isAlive_)
 			g.setColor(color_);
 		else
-			g.setColor(s_deadColor);
+			g.setColor(GlobalColorTable.getDeadSnakeColor());
 		
 		if (settings_.useWideSnakes_)
 			g.fillPolygon(hull_);	

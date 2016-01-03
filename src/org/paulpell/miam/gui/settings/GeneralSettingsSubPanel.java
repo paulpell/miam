@@ -21,14 +21,17 @@ public class GeneralSettingsSubPanel extends JPanel
 {
 	final JLabel FPSLabel_;
 	final JSlider FPSSlider_;
+	
+	final JCheckBox animationCB_ = new JCheckBox();
+	final JCheckBox animationParticlesCB_ = new JCheckBox();
 
 	public GeneralSettingsSubPanel()
 	{
 		GridBagLayout layout = new GridBagLayout(); 
 		setLayout(layout);
 		
-		GridBagConstraints endLineConstr = new GridBagConstraints();
-		endLineConstr.gridwidth = GridBagConstraints.REMAINDER;
+		//GridBagConstraints endLineConstr = new GridBagConstraints();
+		//endLineConstr.gridwidth = GridBagConstraints.REMAINDER;
 		
 		final int gapx = 15;
 		
@@ -57,38 +60,85 @@ public class GeneralSettingsSubPanel extends JPanel
 		c.gridx = 2;
 		c.gridy = 0;
 		c.anchor = GridBagConstraints.BELOW_BASELINE_LEADING;
-		add(FPSSlider_, c); 
+		add(FPSSlider_, c);
+
+		makeAnimationCBs (gapx);
 		
 		
-		// ******************* classic mode
-		JLabel clModeLabel = new JLabel("Classic mode (square):");
-		c = new GridBagConstraints();
+		adjustFPS();
+	}
+	
+	private void makeAnimationCBs(int gapx)
+	{
+		int gridy0 = 2;
+		// ******************* general animation
+		JLabel animationLabel = new JLabel("Visual animations:");
+		GridBagConstraints c = new GridBagConstraints();
 		c.weightx = 0;
 		c.gridx = 0;
-		c.gridy = 1;
+		c.gridy = gridy0;
 		c.anchor = GridBagConstraints.EAST;
 		c.insets = new Insets(0, 0, 0, gapx);
-		add(clModeLabel, c);
+		add(animationLabel, c);
 		
-		final JCheckBox classicModeCB = new JCheckBox();
-		classicModeCB.setSelected(Globals.USE_CLASSIC_SNAKE);
-		classicModeCB.addActionListener(new ActionListener()
+		
+		animationCB_.setSelected(Globals.USE_ANIMATIONS);
+		animationCB_.addActionListener(new ActionListener()
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				Globals.USE_CLASSIC_SNAKE = classicModeCB.isSelected();
+				adjustAnimationSettings();
 			}
 		});
 		c = new GridBagConstraints();
 		c.weightx = 0;
 		c.gridx = 2;
-		c.gridy = 1;
+		c.gridy = gridy0;
 		c.anchor = GridBagConstraints.WEST;
 		c.insets = new Insets(0, 9, 0, 0);
-		add(classicModeCB, c);
+		add(animationCB_, c);
 		
-		adjustFPS();
+		// ******************* particles animation
+		JLabel animParticlesLabel = new JLabel("Particles animation:");
+		c = new GridBagConstraints();
+		c.weightx = 0;
+		c.gridx = 0;
+		c.gridy = gridy0+1;
+		c.anchor = GridBagConstraints.EAST;
+		c.insets = new Insets(0, 0, 0, gapx);
+		add(animParticlesLabel, c);
+		
+		
+		animationParticlesCB_.setSelected(Globals.USE_PARTICLE_ANIMATIONS);
+		animationParticlesCB_.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				adjustAnimationSettings();
+			}
+		});
+		c = new GridBagConstraints();
+		c.weightx = 0;
+		c.gridx = 2;
+		c.gridy = gridy0+1;
+		c.anchor = GridBagConstraints.WEST;
+		c.insets = new Insets(0, 9, 0, 0);
+		add(animationParticlesCB_, c);
+	}
+	
+	private void adjustAnimationSettings()
+	{
+		Globals.USE_ANIMATIONS = animationCB_.isSelected();
+		animationParticlesCB_.setEnabled(Globals.USE_ANIMATIONS);
+		if ( ! Globals.USE_ANIMATIONS )
+		{
+			Globals.USE_PARTICLE_ANIMATIONS = false;
+			animationParticlesCB_.setSelected(false);
+		}
+		else
+			Globals.USE_PARTICLE_ANIMATIONS = animationParticlesCB_.isSelected();		
 	}
 	
 	private void adjustFPS()

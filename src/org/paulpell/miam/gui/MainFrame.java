@@ -24,8 +24,10 @@ import org.paulpell.miam.gui.net.OnlineServersPanel;
 import org.paulpell.miam.gui.settings.SettingsPanel;
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Control;
-import org.paulpell.miam.logic.draw.snakes.Snake;
+import org.paulpell.miam.logic.Game;
+import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.levels.LevelEditorControl;
+import org.paulpell.miam.net.PlayerInfo;
 
 
 public class MainFrame
@@ -97,79 +99,59 @@ public class MainFrame
 		menuBar_ = new LevelEditorMenuBar(leControl);
 		levelEditorPanel_ = leControl.getLevelEditorPanel();
 	}
-	
-	/*private JPanel createTopPanel()
-	{
-		JPanel panel = new JPanel();
-		JButton gamePanelButton = new JButton("Main menu");
-		gamePanelButton.addActionListener(new ActionListener()
-		{
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				showWelcomePanel();
-			}
-		});
-		panel.add(gamePanelButton);
-		panel.doLayout();
-		panel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(10, 10, 10)));
-		return panel;
-	}*/
-
 
 	// we want to pass the key events to control when welcome and game panels are active 
 	// and to level editor itself when it is active
-	public KeyListener getCurrentKeyListener(boolean ctrl)
+	public KeyListener getCurrentKeyListener(KeyEvent e)
 	{
 		if (currentPanel_ == gamePanel_
 				|| currentPanel_ == welcomePanel_)
 			return this;
-		// if control is pressed, let the accelerators do their job
-		else if (currentPanel_ == levelEditorPanel_ && ! ctrl ) 
+		else if (currentPanel_ == playersPanel_)
+		{
+			return playersPanel_.getKeyListener(e);
+		}
+		else if (currentPanel_ == levelEditorPanel_) 
 			return levelEditorPanel_;
 		
 		return null;
 	}
 
 
-	public void showSettings()
+	public boolean showSettingsPanel()
 	{
 		if (null == settingsPanel_)
 			settingsPanel_ = new SettingsPanel(control_, this);
 		
 		isTopPanelVisible_ = true;
-		setNewPanel(settingsPanel_);
+		return setNewPanel(settingsPanel_);
 	}
 	
-	public void showLevelEditor()
+	public boolean showLevelEditor()
 	{
 
 		isTopPanelVisible_ = false;
 		
 		setJMenuBar(menuBar_);
-		setNewPanel(levelEditorPanel_);
-		
-		repaint();
+		return setNewPanel(levelEditorPanel_);
 	}
 	
-	public void showServerSettings()
+	public boolean showServerSettings()
 	{
 		if (null == serversPanel_)
 			serversPanel_ = new OnlineServersPanel(control_, this);
 		
 		isTopPanelVisible_ = true;
-		setNewPanel(serversPanel_);
+		return setNewPanel(serversPanel_);
 	}
 	
-	public void showPlayersSettings(boolean isHosting)
+	public boolean showPlayersSettings(boolean isHosting)
 	{
 		if (null == playersPanel_)
 			playersPanel_ = new OnlinePlayersPanel(control_, this);
 		
-		playersPanel_.prepare(isHosting);
-		
 		isTopPanelVisible_ = true;
-		setNewPanel(playersPanel_);
+		return setNewPanel(playersPanel_);
 	}
 	
 	public boolean showGamePanel()
@@ -185,7 +167,7 @@ public class MainFrame
 	{
 		isTopPanelVisible_ = false;
 		boolean b = setNewPanel(welcomePanel_);
-		if (b)
+		if (b && Globals.USE_ANIMATIONS)
 			welcomePanel_.startAnimating();
 		return b;
 	}
@@ -194,6 +176,8 @@ public class MainFrame
 	{
 		if ( ! currentPanel_.canRemovePanel() )
 			return false;
+		else
+			currentPanel_.panelRemoved();
 		
 		if ( currentPanel_ == levelEditorPanel_ 
 				&& panel != levelEditorPanel_)
@@ -234,15 +218,9 @@ public class MainFrame
 	}
 	
 	
-	
-	public boolean isCurrentPanelWelcome()
+	public void resetOnNewGame(Game g)
 	{
-		return currentPanel_ == welcomePanel_;
-	}
-	
-	public void resetGameInfoPanel(Vector<Snake> v, Dimension gamePanelSize)
-	{
-		gamePanel_.resetForNewGame(v, gamePanelSize);
+		gamePanel_.resetForNewGame(g);
 	}
 	
 	public void paintIsGameInPause(boolean inPause)
@@ -277,27 +255,42 @@ public class MainFrame
 				|| currentPanel_ == serversPanel_)
 			currentPanel_.displayMessage(message);
 	}
-	
-	public void resetNetworkPanels()
+
+	public void resetPlayersNetworkPanel(int defaultPlayerNumber, boolean isHosting)
 	{
-		if (null != playersPanel_)
-			playersPanel_.reset();
-		if (null != serversPanel_)
-			serversPanel_.reset();
+		if (null == playersPanel_)
+			playersPanel_ = new OnlinePlayersPanel(control_, this);
+
+		playersPanel_.reset(defaultPlayerNumber, isHosting);
+	}
+	public void resetServersNetworkPanel()
+	{
+		if (null == serversPanel_)
+			showServerSettings();
+		
+		serversPanel_.reset();
 	}
 	
-	public void setConnectedClients(String[] clients)
+	public void setConnectedClients(Vector <String> clientNames)
 	{
 		if (null == playersPanel_)
 			return;
-		playersPanel_.setConnectedClients(clients);
+		playersPanel_.setConnectedClients(clientNames);
 	}
 	
-	public void setPlayers(String[] players)
+	public void setPlayers(Vector <PlayerInfo> playerInfos,
+			Vector<Integer> unusedColors,
+			Control control)
 	{
 		if (null == playersPanel_)
 			return;
-		playersPanel_.setPlayers(players);
+		playersPanel_.setPlayers(playerInfos, unusedColors, control);
+	}
+	public void setMaxPlayerNumReached(boolean b)
+	{
+		if (null == playersPanel_)
+			return;
+		playersPanel_.setMaxPlayerNumReached(b);
 	}
 	
 	public void displayActualFPS(int fps)

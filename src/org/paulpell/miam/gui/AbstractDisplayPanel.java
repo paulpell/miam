@@ -29,8 +29,7 @@ public abstract class AbstractDisplayPanel extends JPanel
 	abstract public void displayMessage(String message);
 	
 	// return false if we can't close
-	public boolean canRemovePanel()
-	{
-		return true;
-	}
+	abstract public boolean canRemovePanel();
+	public void panelRemoved()
+	{}
 }

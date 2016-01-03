@@ -60,6 +60,28 @@ public class ClassicSnake extends Snake
 		}
 	}
 	
+	private void resetTurnCheck ()
+	{
+		lastDir_ = -1;
+		lastTurnTime_ = System.currentTimeMillis();
+	}
+	
+	@Override
+	public void setTurnLeft(boolean val)
+	{
+		if ( ! val )
+			resetTurnCheck ();
+		turnLeft_  = val;
+	}
+	
+	@Override
+	public void setTurnRight(boolean val)
+	{
+		if ( ! val )
+			resetTurnCheck ();
+		turnRight_  = val;
+	}
+	
 	@Override
 	protected void turnLeft()
 	{

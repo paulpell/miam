@@ -18,6 +18,7 @@ import org.paulpell.miam.geom.GeometricObject;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.geom.Rectangle;
 import org.paulpell.miam.geom.Segment;
+import org.paulpell.miam.gui.GlobalColorTable;
 import org.paulpell.miam.gui.MessagePainter;
 import org.paulpell.miam.gui.editor.LevelEditorPanel;
 import org.paulpell.miam.gui.editor.tools.EditorToolsEnum;
@@ -30,7 +31,6 @@ import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.items.Lightning;
 import org.paulpell.miam.logic.draw.items.ReversingItem;
 import org.paulpell.miam.logic.draw.items.ScoreItem;
-import org.paulpell.miam.logic.draw.snakes.Snake;
 import org.paulpell.miam.logic.draw.walls.Wall;
 import org.paulpell.miam.logic.draw.walls.WallElement;
 import org.paulpell.miam.logic.levels.undo.UndoManager;
@@ -81,7 +81,7 @@ public class LevelEditorControl
 		
 		displayFrame_ = parent;
 		
-		levelEditor_ = new LevelEditorPanel(this, parent);
+		levelEditor_ = new LevelEditorPanel(this, displayFrame_);
 		
 		onNew();
 	}
@@ -96,19 +96,12 @@ public class LevelEditorControl
 	private void reset()
 	{
 		undoManager_ = new UndoManager();
-
 		msgPainter_ = new MessagePainter(15, height_ - 15, -15);
-		
 		image_ = new BufferedImage(width_, height_, BufferedImage.TYPE_INT_ARGB);
-		
 		firstPoint_ = null;
-		
-
-		
 		displayElements_ = new Vector <EditorDisplayElement> ();
 		startPositions_ = new Vector <EditorArrow> ();
 		items_ = new Vector <EditorItem> ();
-		
 		selectedElement_ = null;
 	}
 	
@@ -140,10 +133,7 @@ public class LevelEditorControl
 		if (null == l)
 			return;
 
-		
 		reset();
-		
-		
 		level_ = l;
 		
 		displayElements_ = new Vector <EditorDisplayElement> ();
@@ -170,8 +160,8 @@ public class LevelEditorControl
 		// TODO: encode in level? 
 		undoManager_ = new UndoManager();
 		
-		if ( null != levelEditor_ )
-			drawImage();
+		assert null != levelEditor_ : "null LevelEditor";
+		drawImage();
 	}
 	
 	private void drawImage()
@@ -262,7 +252,7 @@ public class LevelEditorControl
 			int a = level_.getSnakeStartAngle(i);
 			Pointd p = level_.getSnakeStartPosition(i);
 			Arrow arrow = new Arrow(p, Arith.deg2rad(a), 20);
-			Color c = Snake.s_snakesColors[i];
+			Color c = GlobalColorTable.getSnakeColor(i);
 			EditorArrow pos = new EditorArrow(arrow, c);
 			startPositions_.add(pos);
 		}
@@ -328,6 +318,12 @@ public class LevelEditorControl
 			throw new UnsupportedOperationException("Unknown tool type");
 		}
 	}
+	
+	public void mouseLeftDrawPanel ()
+	{
+		cancelCurrent();
+	}
+	
 	private void addDisplayElementAction(Pointd p2)
 	{
 		GeometricObject shape = makeShape(p2);
@@ -411,8 +407,19 @@ public class LevelEditorControl
 			unselectElement();
 		drawImage();
 	}
+	
+	public void onEscPressed()
+	{
+		cancelCurrent();
+	}
+	
+	// DEL or BACKSP
+	public void onErasePressed()
+	{
+		deleteSelected();
+	}
 
-	public void cancelCurrent()
+	private void cancelCurrent()
 	{
 		switch (tool_)
 		{
@@ -437,7 +444,7 @@ public class LevelEditorControl
 		drawImage();
 	}
 	
-	public void deleteSelected()
+	private void deleteSelected()
 	{
 		if (selectedElement_ != null)
 		{

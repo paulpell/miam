@@ -28,7 +28,7 @@ class DrawPanelMouseHandler implements MouseListener, MouseMotionListener
 
 	@Override
 	public void mouseExited(MouseEvent arg0) {
-		leControl_.cancelCurrent();
+		leControl_.mouseLeftDrawPanel();
 	}
 
 	@Override

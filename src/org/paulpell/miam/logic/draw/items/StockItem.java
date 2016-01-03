@@ -9,11 +9,9 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
  * For instance, it could be some mariokart-style banana =) 
  */
 
-public abstract class SpecialItem extends Item
+public abstract class StockItem extends Item
 {
 
-	//Game game; // we often need to place items or such things
-	
 	// When the snake uses its special item.
 	// return true if the object is consumed (not usable again)
 	public abstract boolean activate(Snake s, Game g);
@@ -21,4 +19,9 @@ public abstract class SpecialItem extends Item
 
 	public boolean effectStep(Snake s){ return true;} // no lasting effect, normally
 	public void startEffect(Snake s) {}
+	
+	final public Item.ItemType getType ()
+	{
+		return Item.ItemType.STOCK;
+	}
 }

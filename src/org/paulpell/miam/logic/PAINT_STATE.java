@@ -7,5 +7,5 @@ public enum PAINT_STATE
 	GAME_OVER,
 	PAUSE,
 	VICTORY,
-	EDITOR
+	OTHER_PANELS // for example settings
 }

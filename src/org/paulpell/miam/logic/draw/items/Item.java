@@ -19,7 +19,12 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
 
 public abstract class Item extends Drawable
 {
-	
+	public static enum ItemType
+	{
+		SIMPLE, // when directly applied on the snake
+		STOCK,  // snakes can store one item of this type
+		GLOBAL, // items that have effect on the game in general
+	}
 	
 	protected Rectangle shape_;
 	protected int effectDuration_; // for lasting effects
@@ -40,7 +45,7 @@ public abstract class Item extends Drawable
 	public abstract ImageIcon getImageIcon();
 	public abstract boolean shouldDisplayInPanelInfo();
 	
-	public Pointd isSnakeColliding(Snake s)
+	final public Pointd isSnakeColliding(Snake s)
 	{
 		if (s == null || shape_ == null)
 			return null;
@@ -49,16 +54,20 @@ public abstract class Item extends Drawable
 		return shape_.intersect(l);
 	}
 	
-	public Pointd getPosition()
+	final public Pointd getPosition()
 	{
 		return shape_.getP1();
 	}
 	
-	public int getEffectDuration()
+	final public int getEffectDuration()
 	{
 		return effectDuration_;
 	}
 	
+	public ItemType getType ()
+	{
+		return ItemType.SIMPLE; // by default
+	}
 
 	// used by slave game to create fake items
 	public abstract Item newItem(double x, double y);

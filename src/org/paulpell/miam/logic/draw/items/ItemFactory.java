@@ -163,7 +163,7 @@ public class ItemFactory
 	
 	private boolean itemCollidesWithSnakes (Item item)
 	{
-		Vector <Snake> snakes = control_.getCurrentGame().getSnakes();
+		Vector <Snake> snakes = control_.getCurrentGame().getAllSnakes();
 		for (Snake snake : snakes)
 			if (null != item.isSnakeColliding(snake))
 				return true;
