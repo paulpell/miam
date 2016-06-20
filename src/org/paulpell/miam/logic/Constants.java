@@ -79,9 +79,9 @@ public class Constants
 	public final static int BANANA_EXTRA_DURATION	= 15; // steps
 	public final static int BANANA_SCORE			= 5;
 	
-	public final static long DEFAULT_TIME_BETWEEN_ITEMS_MAX = 3000; // ms
-	public final static long DEFAULT_TIME_BETWEEN_ITEMS_MIN = 1500; // ms
-	
+
+	public final static int[] TIMES_BETWEEN_ITEMS_OCCURENCES = new int[] { 100, 300, 600, 900, 1200, 1500, 2000 };
+	public final static int DEFAULT_TIME_BETWEEN_ITEMS_OCCURENCE_INDEX = 3;
 	
 	// GUI
 	public final static Color WELCOME_COLOR			= new Color(120, 20, 80);

@@ -13,26 +13,32 @@ import org.paulpell.miam.logic.Log;
 public class MainKeyDispatcher implements KeyEventDispatcher
 {
 
-	Control control_;
+//	Control control_;
+	MainFrame mainFrame_;
 	
 	
-	public MainKeyDispatcher(Control control)
+	public MainKeyDispatcher(MainFrame mainFrame)//Control control)
 	{
-		control_ = control;
+		mainFrame_ = mainFrame;
+		//control_ = control;
 	}
 	
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e)
 	{
-		// if alt or ctrl, let Java do the job =)
+		int modctrl = Event.CTRL_MASK;
+		int altctrl = Event.ALT_MASK;
 		int mod = e.getModifiers();
+		Log.logErr("Keyev: mod=" + mod + ", ctrl=" + modctrl + ", alt=" + altctrl);
+		
+		// if alt or ctrl, let Java do the job =)
 		if (0 != (mod & Event.CTRL_MASK))
 			return false;
 		if (0 != (mod & Event.ALT_MASK))
 			return false;
 		
-		
-		KeyListener kl = control_.whoShouldReceiveKeyEvents(e);
+		KeyListener kl = mainFrame_.getCurrentKeyListener(e);
+		//KeyListener kl = control_.dispatchKeyEvent(e);
 		if (null != kl)
 		{
 			KeyStroke ks = KeyStroke.getKeyStrokeForEvent(e);

@@ -198,5 +198,11 @@ public class Line extends GeometricObject
 	{
 		return new Line(p1_.clone(), p2_.clone());
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "Line("+p1_+"->"+p2_+")";
+	}
 
 }

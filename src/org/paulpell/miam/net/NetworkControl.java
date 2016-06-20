@@ -3,9 +3,12 @@ package org.paulpell.miam.net;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Vector;
 
 import org.paulpell.miam.geom.Pointd;
+import org.paulpell.miam.gui.net.OnlinePlayersPanel;
+import org.paulpell.miam.gui.net.OnlineServersPanel;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.ONLINE_STATE;
@@ -13,6 +16,7 @@ import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 import org.paulpell.miam.logic.gameactions.SnakeAction;
 import org.paulpell.miam.logic.levels.Level;
+import org.paulpell.miam.logic.players.PlayerInfo;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 
 public class NetworkControl
@@ -24,11 +28,22 @@ public class NetworkControl
 	
 	Server server_ = null;
 	Client client_ = null; // can also be a MasterClient
+	
+	// connected clients
+	// TODO : private HashMap <Integer, ClientInfo> clientId2Infos_;
+	
+	// gui elements
+	OnlinePlayersPanel onlinePlayersPanel_;
+	OnlineServersPanel onlineServersPanel_;
 
-	public NetworkControl(Control control)
+	public NetworkControl(Control control, OnlinePlayersPanel onlinePlayersPanel,
+			OnlineServersPanel onlineServersPanel)
 	{
 		control_ = control;
 		onlineState_ = ONLINE_STATE.OFFLINE;
+		onlinePlayersPanel_ = onlinePlayersPanel;
+		onlinePlayersPanel_.setNetworkControl(this);
+		onlineServersPanel_ = onlineServersPanel;
 	}
 	
 	public String getNetStatusStr ()
@@ -61,6 +76,17 @@ public class NetworkControl
 	{
 		return onlineState_ == ONLINE_STATE.CLIENT;
 	}
+	public ONLINE_STATE onlineState()
+	{
+		return onlineState_;
+	}
+	
+	public PlayerInfo makePlayerInfo(String name, int snakeId)
+	{
+		int cid = client_.getClientId();
+		char letter = control_.getClientLetter(cid);
+		return new PlayerInfo(name, snakeId, cid, letter);
+	}
 	
 	
 	//////////////
@@ -78,14 +104,14 @@ public class NetworkControl
 		server_.broadcastToSlavesExcept(msg, id_except);
 	}
 	
-	public void setClient ( Client client )
+	/*public void setClient ( Client client )
 	{
 		
-	}
+	}*/
 	// END to remove
 	
 	
-	public void startHosting()
+	public boolean startHosting()
 	{
 		try
 		{
@@ -102,8 +128,20 @@ public class NetworkControl
 			String msg = "Could not start server: "+e.getLocalizedMessage();
 			control_.displayServerMessage(msg);
 		}
+		
+		return client_ != null;
 	}
-
+	
+	public void leaveServer()
+	{
+		if ( isClient() )
+			stopClient();
+		
+		if (isHosting())
+			stopServer(); // calls stopClient()
+		
+		control_.showNetworkPanel(null);
+	}
 	
 	public void stopServer()
 	{
@@ -222,9 +260,9 @@ public class NetworkControl
 		server_.broadcastToSlaves(msg);
 	}
 	
-	public void sendPlayersList(Vector<PlayerInfo> players, Vector<Integer> unusedIds)
+	public void sendPlayersInfo(Vector<PlayerInfo> players, Vector<Integer> unusedIds, int numSeats)
 	{
-		client_.sendPlayersList(players, unusedIds);
+		client_.sendPlayersList(players, unusedIds, numSeats);
 	}
 	
 	public void sendAddPlayerRequest (PlayerInfo pi)

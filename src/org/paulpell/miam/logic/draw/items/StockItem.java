@@ -4,7 +4,7 @@ import org.paulpell.miam.logic.Game;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 
 
-/*
+/**
  * This class represents any item a player can use after he collected it.
  * For instance, it could be some mariokart-style banana =) 
  */

@@ -6,9 +6,11 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
 import org.paulpell.miam.geom.Pointd;
+import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.levels.LevelEditorControl;
 
-class DrawPanelMouseHandler implements MouseListener, MouseMotionListener
+class DrawPanelMouseHandler
+	implements MouseListener, MouseMotionListener
 {
 	
 	LevelEditorControl leControl_;

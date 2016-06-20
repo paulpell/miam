@@ -1,7 +1,9 @@
 package org.paulpell.miam;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.paulpell.miam.logic.Control;
-import org.paulpell.miam.logic.levels.LevelEditorControl;
 
 
 
@@ -21,7 +23,13 @@ public class Snakesss
 	
 
 	public static void main(String[] args)
-	{
+	{// TODO: Proper config dir handling (non-existing, read-only,..)
+		String logpattern =
+			"%h/.Snakesss/"
+			+ "log_"
+			+ new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) ; 
+		Log.initLog(logpattern);
+		
 		// start the beast: a gameWindow reacting to user input
 		new Control();
 		//LevelEditorControl lec = new LevelEditorControl(null);

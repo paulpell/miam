@@ -1,4 +1,4 @@
-package org.paulpell.miam.gui.ptab;
+package org.paulpell.miam.gui.ptab_oldpkg;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -31,18 +31,18 @@ public class PlayerInfoChangeListener
 	{
 		if (e.getSource() instanceof PlayerChoiceNameEditor)
 		{
-			PlayerChoiceNameEditor editor = (PlayerChoiceNameEditor)e.getSource();
-			int row = editor.getEditingRow();
-			String name = editor.getEditedName();
-			control_.playerChangedName(row, name);
+			// BAD PlayerChoiceNameEditor editor = (PlayerChoiceNameEditor)e.getSource();
+			// BAD int row = editor.getEditingRow();
+			// BAD String name = editor.getEditedName();
+			// BAD control_.playerChangedName(row, name);
 		}
 		else if (e.getSource() instanceof PlayerChoiceColorEditor)
 		{
-			PlayerChoiceColorEditor editor = (PlayerChoiceColorEditor)e.getSource();
-			int row = editor.getEditingRow();
-			Integer sid = (Integer)chooseColorsComboboxes_.get(row).getSelectedItem();
-			if ( null != sid)
-				control_.playerChoseColor(row, sid);
+			// BAD PlayerChoiceColorEditor editor = (PlayerChoiceColorEditor)e.getSource();
+			// BAD int row = editor.getEditingRow();
+			// BAD Integer sid = (Integer)chooseColorsComboboxes_.get(row).getSelectedItem();
+			// BAD if ( null != sid)
+				// BAD control_.playerChoseColor(row, sid);
 		}
 	}
 
@@ -62,8 +62,8 @@ public class PlayerInfoChangeListener
 		{
 			if (cpc == chooseColorsComboboxes_.get(i))
 			{
-				int coli = (Integer)cpc.getSelectedItem();
-				control_.playerChoseColor(i, coli);
+				// BAD int coli = (Integer)cpc.getSelectedItem();
+				// BAD control_.playerChoseColor(i, coli);
 				return;
 			}
 		}

@@ -11,10 +11,10 @@ public class Globals
 	//************************* DEBUG FLAGS
 	public static boolean DEBUG = true;
 
-	public static boolean ACTION_DEBUG = DEBUG && false;
+	public static boolean ACTION_DEBUG = DEBUG && true;
 	public static boolean NETWORK_DEBUG = DEBUG && false;
 	public static boolean CLASSIC_DEBUG = DEBUG && false;
-	public static boolean SNAKE_DEBUG = DEBUG && false;
+	public static boolean SNAKE_DEBUG = DEBUG && true;
 
 	
 
@@ -24,8 +24,8 @@ public class Globals
 	public static int FPS_MIN = 5;
 	public static int FPS_MAX = 30;
 	
-	public static boolean USE_ANIMATIONS = true;
-	public static boolean USE_PARTICLE_ANIMATIONS = false;
+	public static boolean USE_ANIMATIONS = false;
+	public static boolean USE_PARTICLE_ANIMATIONS = true;
 	public static boolean USE_BLURRING = false;
 	
 	
@@ -53,12 +53,14 @@ public class Globals
 	public static double SCORE_ITEM_PROBABILITY = 0.7; // in the interval [0,1]
 	public static boolean SCORE_ITEMS_ONLY = false;
 	public static boolean CREATE_EXTRA_ITEMS = true;
-	public static long TIME_BETWEEN_EXTRA_ITEMS_MAX = 5000; // ms
-	public static long TIME_BETWEEN_EXTRA_ITEMS_MIN = 3000; // ms
 	
 
 	
+
 	
+	//****************************************************************
+	//************************* SNAKES
+	public static int GUI_MOVE_WINDOW_STEP_PIXELS = 5;
 	
 	
 	

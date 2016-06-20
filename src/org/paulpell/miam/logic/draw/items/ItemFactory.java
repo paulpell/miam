@@ -26,6 +26,8 @@ import org.paulpell.miam.logic.draw.walls.WallElement;
 
 public class ItemFactory
 {
+	public static long TIME_BETWEEN_EXTRA_ITEMS_MAX = 5000; // ms
+	public static long TIME_BETWEEN_EXTRA_ITEMS_MIN = 3000; // ms
 
 	final private Timer timer_;
 	
@@ -38,16 +40,29 @@ public class ItemFactory
 	// used to pause the factory
 	private boolean sleeping_ = false;
 	
+	static {
+		computeItemsCreationOccurence(Constants.DEFAULT_TIME_BETWEEN_ITEMS_OCCURENCE_INDEX);
+	}
 
 	
 	public ItemFactory(Control control, boolean scoreOnly)
 	{
 		control_ = control;
 		scoreItemsOnly_ = scoreOnly;
-
 		working_ = true;
 		timer_ = new Timer("item-factory");
 		scheduleTimerTask();
+	}
+	
+	public static void computeItemsCreationOccurence(int occurencesIndex)
+	{
+		if (occurencesIndex < 0)
+			occurencesIndex = 0;
+		if (occurencesIndex >= Constants.TIMES_BETWEEN_ITEMS_OCCURENCES.length)
+			occurencesIndex = Constants.TIMES_BETWEEN_ITEMS_OCCURENCES.length - 1;
+		int occur_ms = Constants.TIMES_BETWEEN_ITEMS_OCCURENCES[occurencesIndex];
+		TIME_BETWEEN_EXTRA_ITEMS_MAX = (int)(1.15 * occur_ms);
+		TIME_BETWEEN_EXTRA_ITEMS_MIN = (int)(0.85 * occur_ms);
 	}
 	
 	public boolean isWorking()
@@ -81,8 +96,8 @@ public class ItemFactory
 		// the factory should not run in pause =)
 		
 		long appearanceDelay = (long)(Math.random() *
-				(Globals.TIME_BETWEEN_EXTRA_ITEMS_MAX - Globals.TIME_BETWEEN_EXTRA_ITEMS_MIN) +
-				Globals.TIME_BETWEEN_EXTRA_ITEMS_MIN);
+				(TIME_BETWEEN_EXTRA_ITEMS_MAX - TIME_BETWEEN_EXTRA_ITEMS_MIN) +
+				TIME_BETWEEN_EXTRA_ITEMS_MIN);
 		TimerTask tt = createTimerTask(appearanceDelay);
 		timer_.schedule(tt, appearanceDelay);
 	}

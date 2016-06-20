@@ -217,11 +217,9 @@ public class Game
 		if ( Globals.SNAKE_DEBUG)
 		{
 			for (Snake s : deadSnakes_)
-				if  (s.isAlive())
-					Log.logErr("Alive snakes in dead list!");
+				assert ! s.isAlive() : "Alive snakes in dead list!";
 			for (Snake s : aliveSnakes_) 
-				if ( ! s.isAlive() )
-					Log.logErr("Dead snakes in alive list!");
+				assert s.isAlive() : "Dead snakes in alive list!";
 		}
 	}
 	

@@ -1,9 +1,14 @@
 package org.paulpell.miam.gui;
 
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-public abstract class AbstractDisplayPanel extends JPanel
+public abstract class AbstractDisplayPanel
+	extends JPanel
+	implements KeyListener
 {
 
 	/**
@@ -26,10 +31,12 @@ public abstract class AbstractDisplayPanel extends JPanel
 		return titleText_;
 	}
 	
-	abstract public void displayMessage(String message);
+	abstract public void displayMessage(String message, boolean immediately);
 	
 	// return false if we can't close
 	abstract public boolean canRemovePanel();
 	public void panelRemoved()
 	{}
+	
+	abstract public KeyListener getCurrentKeyListener(KeyEvent e);
 }

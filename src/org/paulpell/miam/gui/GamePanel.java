@@ -1,12 +1,17 @@
 package org.paulpell.miam.gui;
 
 
+import static java.awt.event.KeyEvent.VK_N;
+import static java.awt.event.KeyEvent.VK_SPACE;
+
 import java.awt.BorderLayout;
-import java.awt.Font;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 
 import java.util.Iterator;
@@ -78,12 +83,12 @@ public class GamePanel extends AbstractDisplayPanel
 	//public void resetForNewGame(Vector<Snake> snakes, Dimension gamePanelSize)
 	public void resetForNewGame(Game g)
 	{
-		if (infoPanel_ != null)
+ 		if (infoPanel_ != null)
 			remove(infoPanel_);
-		
 		infoPanel_ = new GameInfoPanel(g);
-		
 		add(infoPanel_, BorderLayout.EAST);
+		
+		msgPainter_.clearMessages();
 		
 		imagePanel_.setPreferredSize(g.getPreferredSize());
 	}
@@ -142,12 +147,6 @@ public class GamePanel extends AbstractDisplayPanel
 		Graphics2D imGr = image.createGraphics();
 		imGr.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-		if (Fonts.bigFont_ == null)
-		{
-			Font font = imGr.getFont();
-			Fonts.normalFont_ = font;
-			Fonts.bigFont_ = font.deriveFont(font.getSize2D() * 4);
-		}
 		
 		// background
 		imGr.setColor(new Color(0,0,0));
@@ -234,9 +233,14 @@ public class GamePanel extends AbstractDisplayPanel
 
 
 	@Override
-	public void displayMessage(String message)
+	public void displayMessage(String message, boolean immediately)
 	{
 		msgPainter_.addMessage(message);
+		if (immediately) {
+			Dimension d = getSize();
+			paintImmediately(0, 0, d.width, d.height);
+			imagePanel_.paintImmediately();
+		}
 	}
 
 	public void setVictoryColors(Vector<Color> colors)
@@ -295,6 +299,51 @@ public class GamePanel extends AbstractDisplayPanel
 	public boolean canRemovePanel()
 	{
 		return true;
+	}
+
+	@Override
+	public KeyListener getCurrentKeyListener(KeyEvent e) {
+		return this;
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		int keycode = e.getKeyCode();
+		switch (keycode) {
+		case KeyEvent.VK_ESCAPE:
+			control_.onGamePanelEsc();
+		
+		case KeyEvent.VK_P:
+			control_.togglePause();
+			break;
+			
+		case VK_SPACE:
+		case VK_N:
+			control_.newPressed();
+			break;
+		
+		default:
+			control_.onGameKeyPressed(keycode);
+			break;
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		int keycode = e.getKeyCode();
+		switch (keycode) {
+		case KeyEvent.VK_P:
+			// keep P private
+			break;
+		
+		default:
+			control_.onGameKeyReleased(keycode);
+			break;
+		}
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
 	}
 	
 

@@ -1,5 +1,8 @@
 package org.paulpell.miam.gui.settings;
 
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
@@ -28,15 +31,41 @@ public class SettingsPanel extends AbstractDisplayPanel
 	}
 
 	@Override
-	public void displayMessage(String message)
+	public void displayMessage(String message, boolean immediately)
 	{
-		// do nothing
+		assert false;
 	}
 
 	@Override
 	public boolean canRemovePanel()
 	{
 		return true;
+	}
+
+	@Override
+	public KeyListener getCurrentKeyListener(KeyEvent e) {
+		return this;
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+		switch (e.getKeyCode()) {
+		case KeyEvent.VK_ESCAPE:
+			control.showWelcomePanel();
+			break;
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

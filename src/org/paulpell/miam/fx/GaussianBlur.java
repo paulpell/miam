@@ -4,9 +4,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.ConvolveOp;
 import java.awt.image.Kernel;
-import java.awt.image.WritableRaster;
-
-import org.paulpell.miam.logic.Log;
 
 public class GaussianBlur
 {
@@ -36,7 +33,7 @@ public class GaussianBlur
 					0.1f, 0.1f, 0.1f
 			};
 
-	private static double[] filter3 (double[] pixels, double[][] coeff)
+	/*private static double[] filter3 (double[] pixels, double[][] coeff)
 	{
 		int l = pixels.length;
 		int n_bands = l / 9;
@@ -56,9 +53,9 @@ public class GaussianBlur
 		}
 		
 		return pix;
-	}
+	}*/
 	
-	private static BufferedImage blurImg_old (BufferedImage img, double[][] coeff)
+	/*private static BufferedImage blurImg_old (BufferedImage img, double[][] coeff)
 	{
 		// prepare the new image
 		int width = img.getWidth();
@@ -91,7 +88,7 @@ public class GaussianBlur
 		
 		img_out.setData(raster_out);
 		return img_out;
-	}
+	}*/
 	
 	private static BufferedImage blurImg (BufferedImage img, float[] coeff)
 	{

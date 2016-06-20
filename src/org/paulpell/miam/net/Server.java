@@ -3,7 +3,10 @@ package org.paulpell.miam.net;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Globals;
@@ -42,7 +45,8 @@ public class Server extends Thread
 	
 	
 	private int maxNumSlaveClients_; // how many clients can be handled
-	private LinkedList<ServerWorker> serverWorkers_;
+	private LinkedList<Integer> lastIds_;
+	HashMap<Integer, ServerWorker> serverWorkers_;
 	int nextId_ = 1; // master client has id 0
 	
 	boolean ending_ = false;
@@ -54,7 +58,8 @@ public class Server extends Thread
 		control_ = control;
 		masterClient_ = masterClient;
 		
-		serverWorkers_ = new LinkedList<ServerWorker>();
+		serverWorkers_ = new HashMap<Integer, ServerWorker>();
+		lastIds_ = new LinkedList<Integer>();
 		
 		serverSocket_ = new ServerSocket(port_);
 		
@@ -89,8 +94,9 @@ public class Server extends Thread
 			else
 			{
 				ServerWorker sw = new ServerWorker(newSocket, this); 
-				giveNextId(sw);
-				serverWorkers_.add(sw);
+				int cid = giveNextId(sw);
+				lastIds_.add(cid);
+				serverWorkers_.put(cid, sw);
 				
 				String name = newSocket.getInetAddress().getCanonicalHostName();
 				control_.clientJoined(new ClientInfo(sw.getClientId(), name));
@@ -106,12 +112,13 @@ public class Server extends Thread
 	
 	public void removeClient (int cid)
 	{
-		for ( ServerWorker sw : serverWorkers_ )
+		for ( ServerWorker sw : serverWorkers_.values() )
 		{
 			if ( cid == sw.getClientId() )
 			{
-				serverWorkers_.remove(sw);
+				serverWorkers_.remove(cid);
 				sw.end();
+				lastIds_.remove((Integer)cid); // cast to remove(Object)
 				break;
 			}
 		}
@@ -135,7 +142,7 @@ public class Server extends Thread
 		
 		ending_ = true;
 		listening_ = false;
-		for (ServerWorker sw: serverWorkers_)
+		for (ServerWorker sw: serverWorkers_.values())
 		{
 			if (sw != null)
 			{
@@ -152,6 +159,7 @@ public class Server extends Thread
 		}
 		
 		serverWorkers_.clear();
+		lastIds_.clear();
 		
 		// then close server socket
 		try
@@ -173,7 +181,8 @@ public class Server extends Thread
 		this.maxNumSlaveClients_ = n - 1;
 		while (serverWorkers_.size() > maxNumSlaveClients_)
 		{
-			ServerWorker sw = serverWorkers_.getLast();
+			int cid = lastIds_.getLast();
+			ServerWorker sw = serverWorkers_.get(cid);
 			reject(sw);
 			sw.end();
 		}
@@ -189,7 +198,7 @@ public class Server extends Thread
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Server.broadcastToSlaves: " + message);
 		
-		for (ServerWorker sw : serverWorkers_)
+		for (ServerWorker sw : serverWorkers_.values()) 
 			sw.forwardMessage(message);
 	}
 	
@@ -198,7 +207,7 @@ public class Server extends Thread
 		if (Globals.NETWORK_DEBUG)
 			Log.logMsg("Server.broadcastToSlaves: " + message);
 		
-		for (ServerWorker sw : serverWorkers_)
+		for (ServerWorker sw : serverWorkers_.values())
 		{
 			if ( id_except != sw.getClientId() )
 				sw.forwardMessage(message);
@@ -207,11 +216,11 @@ public class Server extends Thread
 	
 	protected void sendIndividualMessage ( int clientId, TimestampedMessage tmsg)
 	{
-		if (clientId >= 0 && clientId < serverWorkers_.size())
+		if (clientId >= 1 && clientId <= serverWorkers_.size())
 		{
 			try
 			{
-				ServerWorker sw = serverWorkers_.get(clientId);
+				ServerWorker sw = serverWorkers_.get(clientId - 1);
 				sendServerCommand (sw, tmsg);
 			}
 			catch (IOException e)
@@ -226,8 +235,12 @@ public class Server extends Thread
 	{
 		try
 		{
-			if (sw != null)
+			if (sw != null) {
+				int cid = sw.getClientId();
+				lastIds_.remove((Integer)cid);
+				serverWorkers_.remove(cid);
 				sendServerCommand(sw, new TimestampedMessage(getTimestamp(), -1, MsgTypes.CLIENT_REJECTED, null));
+			}
 		}
 		catch (IOException e)
 		{
@@ -235,12 +248,13 @@ public class Server extends Thread
 		}
 	}
 	
-	private void giveNextId(ServerWorker sw) throws IOException
+	private int giveNextId(ServerWorker sw) throws IOException
 	{
 		int id = nextId_++;
 		sw.setId(id);
 		TimestampedMessage message = new TimestampedMessage(getTimestamp(), -1, MsgTypes.SET_ID, new byte[]{(byte)(0xFF&id)});
 		sendServerCommand(sw, message);
+		return id;
 	}
 	
 	private void sendServerCommand(ServerWorker sw, TimestampedMessage message) throws IOException

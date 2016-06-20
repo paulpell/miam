@@ -21,16 +21,13 @@ import org.paulpell.miam.geom.Segment;
 import org.paulpell.miam.gui.GlobalColorTable;
 import org.paulpell.miam.gui.MessagePainter;
 import org.paulpell.miam.gui.editor.LevelEditorPanel;
-import org.paulpell.miam.gui.editor.tools.EditorToolsEnum;
+import org.paulpell.miam.gui.editor.tools.EditorDrawToolsEnum;
+import org.paulpell.miam.gui.editor.tools.EditorItemsToolsEnum;
+import org.paulpell.miam.gui.editor.tools.IEditorTool;
 import org.paulpell.miam.logic.Arith;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.logic.draw.items.Banana;
-import org.paulpell.miam.logic.draw.items.BananaSpecial;
 import org.paulpell.miam.logic.draw.items.Item;
-import org.paulpell.miam.logic.draw.items.Lightning;
-import org.paulpell.miam.logic.draw.items.ReversingItem;
-import org.paulpell.miam.logic.draw.items.ScoreItem;
 import org.paulpell.miam.logic.draw.walls.Wall;
 import org.paulpell.miam.logic.draw.walls.WallElement;
 import org.paulpell.miam.logic.levels.undo.UndoManager;
@@ -55,7 +52,7 @@ public class LevelEditorControl
 	static final Color selectedPointColor_ = Color.red;
 	static public final Color selectedItemColor_ = Color.red;
 	
-	EditorToolsEnum tool_ = EditorToolsEnum.HAND;
+	IEditorTool tool_ = EditorDrawToolsEnum.HAND;
 	Pointd firstPoint_ = null;
 	static Pointd s_dummyPoint = new Pointd(0,0);
 	
@@ -69,7 +66,7 @@ public class LevelEditorControl
 	
 	UndoManager undoManager_;
 	
-	Level level_= null ;
+	Level level_= null;
 	
 	
 	public LevelEditorControl(Control control, JFrame parent)
@@ -138,7 +135,9 @@ public class LevelEditorControl
 		
 		displayElements_ = new Vector <EditorDisplayElement> ();
 		
-		initialiseStartPositions();
+		int initialNumSnakes = level_.getMaxNumberSnakes();
+		levelEditor_.getToolsPanel().setNumSnakes(initialNumSnakes);
+		updateNumSnakes(initialNumSnakes);
 		
 		items_ = new Vector <EditorItem> ();
 		Vector <Item> its = level_.getInitialItems();
@@ -224,30 +223,35 @@ public class LevelEditorControl
 		double dx = Arith.absd(firstPoint_.x_ - p2.x_);
 		double dy = Arith.absd(firstPoint_.y_ - p2.y_);
 		
-		switch (tool_)
-		{
-		case LINE:
+		if (tool_ == EditorDrawToolsEnum.LINE) {
 			return new Segment(firstPoint_, p2);
-			
-		case RECTANGLE:
+		}
+		if (tool_ == EditorDrawToolsEnum.RECTANGLE) {
 			return new Rectangle(biggestX, biggestY, (int)dx, (int)dy, false);
-			
-		case CIRCLE:
+		}
+		if (tool_ == EditorDrawToolsEnum.CIRCLE) {
 			double rad = Arith.maxd(dx, dy) / 2.;
 			Pointd center = new Pointd(biggestX + rad, biggestY + rad);
 			return new Circle(center, rad);
-			
-		default:
-			return null;
 		}
+		return null;
 	}
 	
 	
-	private void initialiseStartPositions()
+	public void updateNumSnakes(int numSnakes)
 	{
-		startPositions_ = new Vector <EditorArrow> ();
+		level_.setMaxNumberSnakes(numSnakes);
+		initialiseStartPositions(numSnakes, startPositions_.size());
+	}
+	
+	private void initialiseStartPositions(int numMax, int numInitialized)
+	{
+		// if too many, remove
+		while (startPositions_.size() > numMax)
+			startPositions_.remove(numMax-1);
 		
-		for (int i=0; i<level_.getMaxNumberSnakes(); ++i)
+		// or add the needed ones
+		for (int i=numInitialized; i<numMax; ++i)
 		{
 			int a = level_.getSnakeStartAngle(i);
 			Pointd p = level_.getSnakeStartPosition(i);
@@ -263,7 +267,7 @@ public class LevelEditorControl
 	public void mouseMoved(Pointd p)
 	{
 		levelEditor_.setPositionText("(" + (int)p.x_ + "," + (int)p.y_ + ")");
-		if (tool_ == EditorToolsEnum.HAND)
+		if (tool_ == EditorDrawToolsEnum.HAND)
 		{
 			if (null != selectedElement_)
 				selectedElement_.move(p);
@@ -282,39 +286,21 @@ public class LevelEditorControl
 		if (null == tool_)
 			return;
 		
-		switch (tool_)
-		{
-		case LINE:
-		case RECTANGLE:
-		case CIRCLE:
+			// draw tools
+		if (tool_ == EditorDrawToolsEnum.CIRCLE
+				|| tool_ == EditorDrawToolsEnum.LINE
+				 || tool_ == EditorDrawToolsEnum.RECTANGLE
+		) {
 			if ( null == firstPoint_ )
 				firstPoint_ = p;
 			else
 				addDisplayElementAction(p);
-			break;
-			
-		case HAND:
+		} else if (tool_ == EditorDrawToolsEnum.HAND) {
 			handleHandClick(p);
-			break;
-			
-		case SCORE:
-			addItemAction(new ScoreItem(p.x_, p.y_));
-			break;
-		case BANANA:
-			addItemAction(new Banana(p.x_, p.y_));
-			break;
-		case BANANA_SP:
-			addItemAction(new BananaSpecial(p.x_, p.y_));
-			break;
-		case LIGHTNING:
-			addItemAction(new Lightning(p.x_, p.y_));
-			break;
-		case REVERSE:
-			addItemAction(new ReversingItem(p.x_, p.y_));
-			break;
-			
-			
-		default:
+			// item tools
+		} else if (tool_ instanceof EditorItemsToolsEnum) {
+			addItemAction(((EditorItemsToolsEnum)tool_).getItem(p.x_, p.y_));
+		} else {
 			throw new UnsupportedOperationException("Unknown tool type");
 		}
 	}
@@ -399,11 +385,11 @@ public class LevelEditorControl
 		}
 	}
 
-	public void setTool(EditorToolsEnum tool)
+	public void setTool(IEditorTool tool)
 	{
 		firstPoint_ = null;
 		tool_ = tool;
-		if (tool_ != EditorToolsEnum.HAND)
+		if (tool_ != EditorDrawToolsEnum.HAND)
 			unselectElement();
 		drawImage();
 	}
@@ -422,23 +408,19 @@ public class LevelEditorControl
 
 	private void cancelCurrent()
 	{
-		switch (tool_)
-		{
-		case LINE:
-		case RECTANGLE:
-		case CIRCLE:
+			// draw tools
+		if (tool_ == EditorDrawToolsEnum.CIRCLE
+				|| tool_ == EditorDrawToolsEnum.LINE
+				 || tool_ == EditorDrawToolsEnum.RECTANGLE
+		) {
 			firstPoint_ = null;
-			break;
-			
-		case HAND:
+		} else if (tool_ == EditorDrawToolsEnum.HAND) {
 			if ( null != selectedElement_ )
 			{
 				unselectElement();
 				undoManager_.cancelCurrent();
 			}
-			break;
-			
-		default:
+		} else { // others don't influence
 			return;
 		}
 		
@@ -486,7 +468,7 @@ public class LevelEditorControl
 		}
 		catch (Exception e)
 		{
-			levelEditor_.displayMessage("Cannot open level: " + e.getMessage());
+			levelEditor_.displayMessage("Cannot open level: " + e.getMessage(), true);
 			Log.logErr("Cannot open level!");
 			Log.logException(e);
 		}
@@ -524,19 +506,21 @@ public class LevelEditorControl
 	private void updateLevel()
 	{
 		level_.setWall(makeWall());
-		for (int i=0; i<startPositions_.size(); ++i)
+		int numSnakes = startPositions_.size();
+		for (int i=0; i<numSnakes; ++i)
 		{
-			int a = Arith.rad2deg(startPositions_.get(i).getAngle());
+			int a = Arith.rad2deg(startPositions_.get(i).getAngleRad());
 			level_.setSnakeStartAngle(i, a);
 			Pointd p = startPositions_.get(i).getPoint();
 			level_.setSnakeStartPosition(i, p);
 		}
+		level_.setNumberSnakes(numSnakes);
 		Vector <Item> its = new Vector <Item> ();
 		for (EditorItem i : items_)
 			its.add(i.getItem());
 		level_.setInitialItems(its);
 	}
-	
+
 	public void displayMessage(String msg)
 	{
 		msgPainter_.addMessage(msg);

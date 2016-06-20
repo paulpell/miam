@@ -1,4 +1,4 @@
-package org.paulpell.miam.net;
+package org.paulpell.miam.logic.players;
 
 public class PlayerInfo
 {
@@ -53,7 +53,7 @@ public class PlayerInfo
 	}
 	
 	// don't use clientid, since we test whether the two will clash on server
-	public PlayerEq equalsOnline (PlayerInfo other)
+	public PlayerEq equalsOnlineDetail (PlayerInfo other)
 	{
 		if ( snakeId_ == other.snakeId_ )
 			return PlayerEq.SNAKE_ID_EQUAL;
@@ -62,6 +62,16 @@ public class PlayerInfo
 			return PlayerEq.NAME_EQUAL;
 		
 		return PlayerEq.NOT_EQUAL;
+	}
+	
+	public boolean equalsOnline(PlayerInfo other)
+	{
+		return equalsOnlineDetail(other) != PlayerEq.NOT_EQUAL;
+	}
+	
+	public String toString()
+	{
+		return "Player(s" + snakeId_ + ":\"" + name_ +"\"@" + clientId_ + ")";
 	}
 
 }

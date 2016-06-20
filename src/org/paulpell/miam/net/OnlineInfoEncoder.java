@@ -1,5 +1,7 @@
 package org.paulpell.miam.net;
 
+import org.paulpell.miam.logic.players.PlayerInfo;
+
 public class OnlineInfoEncoder
 {
 

@@ -1,7 +1,6 @@
 package org.paulpell.miam.logic.draw.snakes.auto;
 
 import java.awt.Component;
-import java.awt.EventQueue;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.TimerTask;
@@ -84,19 +83,6 @@ public class AutoSnake extends Snake
 	}
 	public TimerTask makeTimerTask (final Game game, final Component cont)
 	{
-		final Runnable refresh = new Runnable ()
-		{
-			long t = 0;
-			@Override
-			public void run()
-			{
-				long t2 = System.currentTimeMillis();
-				System.out.println("Time for autosnake: " + (t2 - t));
-				AutoSnake.this.advance(game);
-				cont.repaint();
-				t = t2;
-			}
-		};
 		if (null == timerTask_)
 			timerTask_ =
 				new TimerTask()
@@ -104,7 +90,8 @@ public class AutoSnake extends Snake
 					@Override
 					public void run()
 					{
-						EventQueue.invokeLater(refresh);
+						AutoSnake.this.advance(game);
+						cont.repaint();
 					}
 				};
 		return timerTask_;

@@ -49,7 +49,7 @@ public class ServerWorker extends Thread{
 			catch (IOException e)
 			{
 				if ( listening_ )
-					onSocketError (e, "can not receive");
+					onSocketError (e, "client exit");
 			}
 		}
 	}
@@ -110,6 +110,22 @@ public class ServerWorker extends Thread{
 		{
 			onSocketError (e, "cannot forward");
 		}
+	}
+	
+	@Override
+	public boolean equals(Object other)
+	{
+		if (other instanceof ServerWorker) {
+			int id2 = ((ServerWorker)other).id_;
+			return id_ == id2;
+		}
+		return false;
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return id_;
 	}
 	
 }

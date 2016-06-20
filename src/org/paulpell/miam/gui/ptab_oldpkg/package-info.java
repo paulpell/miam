@@ -6,4 +6,4 @@
  * @author paul
  *
  */
-package org.paulpell.miam.gui.ptab;
+package org.paulpell.miam.gui.ptab_oldpkg;

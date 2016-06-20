@@ -3,7 +3,6 @@ package org.paulpell.miam.gui.net;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.event.ActionListener;
 import java.util.Vector;
 
 import javax.swing.DefaultComboBoxModel;
@@ -42,15 +41,13 @@ public class ChoosePlayerColor
 	
 	DefaultComboBoxModel<Integer> model_;
 
-	public ChoosePlayerColor(Vector<Integer> colIndexes, ActionListener colorChangeListener)
+	public ChoosePlayerColor(Vector<Integer> colIndexes)//, ActionListener colorChangeListener)
 	{
 		setRenderer(new ColorListCellRenderer());
-		model_ = new DefaultComboBoxModel<Integer>();
-		for (Integer i : colIndexes)
-			model_.addElement(i);
-		addActionListener(colorChangeListener);
+		model_ = new DefaultComboBoxModel<Integer>(colIndexes);
+		//addActionListener(colorChangeListener);
 	}
-
+	
 /*	public void setAvailableColors(Vector<Integer> colIndexes)
 	{
 		Integer sel= (Integer)model_.getSelectedItem();

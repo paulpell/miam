@@ -4,7 +4,6 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -30,17 +29,18 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.Popup;
-import javax.swing.PopupFactory;
 
 import org.paulpell.miam.gui.AbstractDisplayPanel;
 import org.paulpell.miam.gui.LevelListPanel;
-import org.paulpell.miam.gui.ptab.PlayerChoiceTable;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Log;
+import org.paulpell.miam.logic.ONLINE_STATE;
 import org.paulpell.miam.logic.draw.items.AllTheItems;
 import org.paulpell.miam.logic.levels.LevelChoiceInfo;
-import org.paulpell.miam.net.PlayerInfo;
+import org.paulpell.miam.logic.players.PlayersManager;
+import org.paulpell.miam.net.NetworkControl;
+
+import org.paulpell.miam.gui.playertab.PlayerChoiceTable;
 
 @SuppressWarnings("serial")
 public class OnlinePlayersPanel
@@ -49,6 +49,8 @@ public class OnlinePlayersPanel
 {
 
 	Control control_;
+	NetworkControl netControl_;
+	PlayersManager playersMgr_ = null;
 	
 	JButton leaveServerButton_;
 	
@@ -56,13 +58,9 @@ public class OnlinePlayersPanel
 	JComboBox <Integer> snakesNumberBox_;
 	LevelListPanel levelPanel_;
 	
-	//JList <String> playersList_;
-	//DefaultListModel <String> playersListModel_;
-	//PlayerChoiceTable__________OLD playerChoiceTable_;
 	PlayerChoiceTable playerChoiceTable_;
 	JList <String> clientsList_;
 	DefaultListModel <String> clientsListModel_;
-	JButton addPlayerButton_;
 	JTextArea chatArea_;
 	JTextField chatMsgField_;
 	
@@ -70,10 +68,6 @@ public class OnlinePlayersPanel
 	boolean startedGameMyself_;
 	
 	boolean isAskingUserConfirmation_; // used in canRemovePanel to avoid duplicate msgbox
-	
-	boolean showPopup_;
-	AddPlayerPanel addPlayerPanel_;
-	Popup addPlayerPopup_;
 	
 	
 	// this list contains the components to disable when slave
@@ -89,43 +83,52 @@ public class OnlinePlayersPanel
 		initPlayersPanel();
 		
 		startedGameMyself_ = false;
-		showPopup_ = false;
 		isAskingUserConfirmation_ = false;
+	}
+	
+	public void setPlayersManager(PlayersManager playersMgr)
+	{
+		playersMgr_ = playersMgr;
+		playerChoiceTable_.setPlayersManager(playersMgr_);
+	}
+	
+	public void setNetworkControl(NetworkControl netControl)
+	{
+		netControl_ = netControl;
 	}
 	
 	// return false if we can't close
 	@Override
 	public boolean canRemovePanel()
 	{
-		if ( null != addPlayerPopup_)
-			addPlayerPopup_.hide();
+		playerChoiceTable_.closePopup();
 		
-		if ( control_.isHosting() && ! startedGameMyself_ )
+		if ( netControl_.isHosting() && ! startedGameMyself_ )
 		{
 			isAskingUserConfirmation_ = true;
 			String msg = "The server will be stopped, are you sure?";
-			final int yes = JOptionPane.YES_OPTION;
 			int answer = JOptionPane.showConfirmDialog(
 					this, msg, "Stop server?", JOptionPane.YES_NO_OPTION);
-			if (yes == answer)
-				control_.stopServer();
-
 			isAskingUserConfirmation_ = false;
-			return yes == answer ;
+			if (answer == JOptionPane.YES_OPTION) {
+				netControl_.stopServer();
+				playerChoiceTable_.closePopup();
+				return true;
+			}
+
+			return false;
 		}
 		return true;
 	}
 
 	@Override
-	public void displayMessage(String message)
+	public void displayMessage(String message, boolean immediately)
 	{
 		chatArea_.append(message + "\n");
 	}
 
 	private void initPlayersPanel()
 	{
-		final int CHAT_COLS = 30;
-		final int CHAT_ROWS = 13;
 		
 		GridBagLayout layout = new GridBagLayout();
 		layout.rowHeights = new int[] {20, 70, 20};
@@ -147,130 +150,17 @@ public class OnlinePlayersPanel
 		add(topPanel, constr);
 		
 		
-		// left: clients and players list
-		JPanel playerListPanel = new JPanel();
-		GridBagLayout playerListLayout = new GridBagLayout();
-		playerListLayout.rowHeights = new int[] {20, 60, 20, 60};
-		playerListLayout.columnWidths = new int[] {80};
-		playerListPanel.setLayout(playerListLayout);
-		
-
-		// clients
-		constr = new GridBagConstraints();
-		constr.anchor = GridBagConstraints.WEST;
-		constr.insets = new Insets(3, 3, 3, 3);
-		playerListPanel.add(new JLabel("Clients:"), constr);
-		
-		clientsListModel_ = new DefaultListModel <String> ();
-		JList <String> clientsList = new JList <String> (clientsListModel_);
-		constr = new GridBagConstraints();
-		constr.gridy = 1;
-		constr.fill = GridBagConstraints.HORIZONTAL;
-		constr.anchor = GridBagConstraints.CENTER;
-		constr.insets = new Insets(3, 3, 10, 3);
-		playerListPanel.add(clientsList, constr);
-		
-		// players
-		constr = new GridBagConstraints();
-		constr.gridy = 2;
-		constr.anchor = GridBagConstraints.WEST;
-		constr.insets = new Insets(3, 3, 3, 3);
-		playerListPanel.add(new JLabel("Players:"), constr);
-
-		constr = new GridBagConstraints();
-		constr.gridy = 3;
-		constr.fill = GridBagConstraints.HORIZONTAL;
-		constr.anchor = GridBagConstraints.CENTER;
-		constr.insets = new Insets(3, 3, 3, 3);
-		//playerChoiceTable_ = new PlayerChoiceTable__________OLD();
-		playerChoiceTable_ = new PlayerChoiceTable();
-		playerListPanel.add(playerChoiceTable_, constr);
-		
-		// the player is actually added when enter is hit
-		addPlayerButton_ = new JButton("Add..");
-		addPlayerButton_.addActionListener(new ActionListener()
-		{	
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				showAddPlayerPopup();
-			}
-		});
-		constr = new GridBagConstraints();
-		constr.gridx = 0;
-		constr.gridy = 4;
-		constr.fill = GridBagConstraints.NONE;
-		constr.anchor = GridBagConstraints.CENTER;
-		constr.insets = new Insets(3, 3, 3, 3);
-		playerListPanel.add(addPlayerButton_, constr);
-
-		// component displayed in popup 
-		addPlayerPanel_ = new AddPlayerPanel();
-		
-
+		/// left : lists of clients and players
 		constr = new GridBagConstraints();
 		constr.gridy = 1;
 		constr.anchor = GridBagConstraints.WEST;
 		constr.fill = GridBagConstraints.HORIZONTAL;
 		constr.insets = new Insets(3, 13, 3, 3); // 13 pixels on the left
-		add(playerListPanel, constr);
-		
-
+		add(makeClientsPlayersPanel(), constr);
 		
 		
 		// right: chat area
-		JPanel chatPanel = new JPanel();
-		GridBagLayout chatLayout = new GridBagLayout();
-		chatLayout.rowHeights = new int[] {60, 20};
-		chatPanel.setLayout(chatLayout);
-		chatArea_ = new JTextArea(CHAT_ROWS, CHAT_COLS);
-		chatArea_.setEditable(false);
-		JScrollPane chatScroll = new JScrollPane(chatArea_);
-		constr = new GridBagConstraints();
-		constr.gridx = 0;
-		constr.gridy = 0;
-		constr.fill = GridBagConstraints.NONE;
-		constr.anchor = GridBagConstraints.CENTER;
-		constr.insets = new Insets(3, 3, 3, 3);
-		chatPanel.add(chatScroll, constr);
-
-		JPanel sendChatMsgPanel = new JPanel(new FlowLayout());
-		chatMsgField_ = new JTextField(25);
-		chatMsgField_.requestFocusInWindow();
-		/*chatMsgField_.addKeyListener(new KeyAdapter()
-		{
-			@Override
-			public void keyPressed(KeyEvent e)
-			{
-				if (e.getKeyCode() == VK_ENTER)
-					sendChatMsg();
-			}
-		});*/
-		sendChatMsgPanel.add(chatMsgField_);
-		JButton chatSendButton = new JButton("send");
-		chatSendButton.addActionListener(new ActionListener()
-		{
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				sendChatMsg();
-			}
-		});
-		sendChatMsgPanel.add(chatSendButton);
-		constr = new GridBagConstraints();
-		constr.gridx = 0;
-		constr.gridy = 1;
-		constr.fill = GridBagConstraints.NONE;
-		constr.anchor = GridBagConstraints.CENTER;
-		constr.insets = new Insets(3, 3, 3, 3);
-		chatPanel.add(sendChatMsgPanel, constr);
-
-		constr = new GridBagConstraints();
-		constr.gridx = 1;
-		constr.gridy = 1;
-		constr.fill = GridBagConstraints.NONE;
-		constr.anchor = GridBagConstraints.CENTER;
-		constr.insets = new Insets(3, 3, 3, 3);
+		JPanel chatPanel = makeChatPanel();
 		add(chatPanel, constr);
 		
 		
@@ -296,10 +186,115 @@ public class OnlinePlayersPanel
 		doLayout();
 
 		
-		
+		// to be enabled only when hosting
 		hostingComponents_.add(startButton_);
 		hostingComponents_.add(classicCheckBox_);
 		hostingComponents_.add(snakesNumberBox_);
+		hostingComponents_.add(levelPanel_);
+	}
+	
+	private JPanel makeChatPanel()
+	{
+		final int CHAT_COLS = 30;
+		final int CHAT_ROWS = 13;
+		
+		JPanel chatPanel = new JPanel();
+		GridBagLayout chatLayout = new GridBagLayout();
+		chatLayout.rowHeights = new int[] {60, 20};
+		chatPanel.setLayout(chatLayout);
+		chatArea_ = new JTextArea(CHAT_ROWS, CHAT_COLS);
+		chatArea_.setEditable(false);
+		JScrollPane chatScroll = new JScrollPane(chatArea_);
+
+		GridBagConstraints constr = new GridBagConstraints();
+		constr.gridx = 0;
+		constr.gridy = 0;
+		constr.fill = GridBagConstraints.NONE;
+		constr.anchor = GridBagConstraints.CENTER;
+		constr.insets = new Insets(3, 3, 3, 3);
+		chatPanel.add(chatScroll, constr);
+
+		JPanel sendChatMsgPanel = new JPanel(new FlowLayout());
+		chatMsgField_ = new JTextField(25);
+		chatMsgField_.requestFocusInWindow();
+		sendChatMsgPanel.add(chatMsgField_);
+		JButton chatSendButton = new JButton("send");
+		chatSendButton.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				sendChatMsg();
+			}
+		});
+		sendChatMsgPanel.add(chatSendButton);
+		constr = new GridBagConstraints();
+		constr.gridx = 0;
+		constr.gridy = 1;
+		constr.fill = GridBagConstraints.NONE;
+		constr.anchor = GridBagConstraints.CENTER;
+		constr.insets = new Insets(3, 3, 3, 3);
+		chatPanel.add(sendChatMsgPanel, constr);
+
+		constr = new GridBagConstraints();
+		constr.gridx = 1;
+		constr.gridy = 1;
+		constr.fill = GridBagConstraints.NONE;
+		constr.anchor = GridBagConstraints.CENTER;
+		constr.insets = new Insets(3, 3, 3, 3);
+		
+		return chatPanel;
+	}
+	
+	private JPanel makeClientsPlayersPanel()
+	{
+
+		// left: clients and players list
+		JPanel playerListPanel = new JPanel();
+		GridBagLayout playerListLayout = new GridBagLayout();
+		playerListLayout.rowHeights = new int[] {20, 60, 20, 60};
+		playerListLayout.columnWidths = new int[] {80};
+		playerListPanel.setLayout(playerListLayout);
+		
+
+		// clients
+		GridBagConstraints constr = new GridBagConstraints();
+		constr.anchor = GridBagConstraints.WEST;
+		constr.insets = new Insets(3, 3, 3, 3);
+		playerListPanel.add(new JLabel("Clients:"), constr);
+		
+		clientsListModel_ = new DefaultListModel <String> ();
+		JList <String> clientsList = new JList <String> (clientsListModel_);
+		constr = new GridBagConstraints();
+		constr.gridy = 1;
+		constr.fill = GridBagConstraints.HORIZONTAL;
+		constr.anchor = GridBagConstraints.CENTER;
+		constr.insets = new Insets(3, 3, 10, 3);
+		playerListPanel.add(clientsList, constr);
+		
+		// players
+		constr = new GridBagConstraints();
+		constr.gridy = 2;
+		constr.anchor = GridBagConstraints.WEST;
+		constr.insets = new Insets(3, 3, 3, 3);
+		playerListPanel.add(new JLabel("Players:"), constr);
+
+		constr = new GridBagConstraints();
+		constr.gridy = 3;
+		constr.fill = GridBagConstraints.HORIZONTAL;
+		constr.anchor = GridBagConstraints.CENTER;
+		constr.insets = new Insets(3, 3, 3, 3);
+		playerChoiceTable_ = new PlayerChoiceTable();
+		playerListPanel.add(playerChoiceTable_, constr);
+
+		constr = new GridBagConstraints();
+		constr.gridy = 4;
+		constr.fill = GridBagConstraints.HORIZONTAL;
+		constr.anchor = GridBagConstraints.CENTER;
+		constr.insets = new Insets(3, 3, 3, 3);
+		playerListPanel.add(new JLabel("Test label"), constr);
+
+		return playerListPanel;
 	}
 	
 	private JPanel makeTopPanel ()
@@ -313,7 +308,7 @@ public class OnlinePlayersPanel
 			@Override
 			public void actionPerformed(ActionEvent arg0)
 			{
-				control_.leaveServer();
+				netControl_.leaveServer();
 			}
 		});
 		
@@ -364,12 +359,20 @@ public class OnlinePlayersPanel
 		return topPanel;
 	}
 	
+	//public void init
+	
 	private void startGame()
 	{
+		int numPlayers = playersMgr_.getPlayerList().size();
+		if (numPlayers == 0) {
+			displayMessage("No players for the game!", true);
+			return;
+		}
+		//int sNo = getNumberSeats();
+		int nSnakes = playersMgr_.getNumberSnakes();
 		startedGameMyself_ = true;
 		String lname = levelPanel_.getLevelName();
-		int sNo = getSnakesNumber();
-		LevelChoiceInfo linfo = new LevelChoiceInfo(lname, sNo);
+		LevelChoiceInfo linfo = new LevelChoiceInfo(lname, nSnakes);
 		control_.startMasterGame(linfo);
 	}
 	
@@ -382,24 +385,6 @@ public class OnlinePlayersPanel
 			chatMsgField_.setText("");
 		}
 	}
-
-	/*public void prepare(boolean isHosting)
-	{
-		startedGameMyself_ = false;
-		if (isHosting)
-		{
-			leaveServerButton_.setText("Stop hosting");
-			leaveServerButton_.setMnemonic(VK_H);
-		}
-		else
-		{
-			leaveServerButton_.setText("Leave server");
-			leaveServerButton_.setMnemonic(VK_L);
-		}
-		
-		for (JComponent c: hostingComponents_)
-			c.setEnabled(isHosting);
-	}*/
 	
 	public void setConnectedClients(Vector <String> clientNames)
 	{
@@ -408,61 +393,23 @@ public class OnlinePlayersPanel
 			clientsListModel_.add(i, clientNames.get(i));
 	}
 	
-	// called from GUI
-	private void showAddPlayerPopup()
-	{
-		assert ! showPopup_ : "Adding 2 times!";
-
-		addPlayerButton_.setEnabled(false);
-		Point p = addPlayerButton_.getLocationOnScreen();
-		PopupFactory pf = PopupFactory.getSharedInstance();
-		addPlayerPopup_ = pf.getPopup(this, addPlayerPanel_, p.x, p.y);
-		addPlayerPopup_.show();
-		showPopup_ = true;
-	}
-	
-	private void hidePopup()
-	{
-		showPopup_ = false;
-		addPlayerButton_.setEnabled(true);
-		if ( null != addPlayerPopup_ )
-			addPlayerPopup_.hide();
-	}
-	
-	private void popupEnterPressed()
-	{
-		int sid = addPlayerPanel_.getSnakeId();
-		if (sid < 0)
-			return;
-		String playerName = addPlayerPanel_.getPlayerName();
-		if ( playerName.isEmpty() )
-			return;
-		
-		control_.tryAddPlayer(playerName, sid);
-	}
-	
-	public void setPlayers(Vector <PlayerInfo> playerInfos,
-			Vector<Integer> unusedColors,
-			Control control)
-	{
-		playerChoiceTable_.setPlayerInfos(playerInfos, unusedColors, control);
-	}
-
 	public void setMaxPlayerNumReached(boolean b)
 	{
-		if (b && showPopup_)
+		/*if (b && showPopup_)
 			hidePopup();
-		addPlayerButton_.setEnabled(b);
+		addPlayerButton_.setEnabled(b);*/
 	}
 	
 	
 	private void snakesNumberUpdated()
 	{
-		int sNo = getSnakesNumber();
-		control_.playersNumberFixed(sNo);
+		assert netControl_.isHosting() : "Only server can change this";
+		int sNo = getNumberSeats();
+		playersMgr_.setNumberSeats(sNo);
+		playerChoiceTable_.repaint();
 	}
 	
-	public int getSnakesNumber()
+	public int getNumberSeats()
 	{
 		return (Integer)snakesNumberBox_.getSelectedItem();
 		/*try
@@ -476,16 +423,15 @@ public class OnlinePlayersPanel
 		}*/
 	}
 	
-	public void reset(int defaultPlayerNumber, boolean isHosting)
+	public void reset(int defaultPlayerNumber, ONLINE_STATE onlineState)
 	{
 		chatArea_.setText("");
 		chatMsgField_.setText("");
-		addPlayerPanel_.reset();
-		playerChoiceTable_.reset(defaultPlayerNumber);
 		setConnectedClients(new Vector<String>());
 		snakesNumberBox_.setSelectedItem(defaultPlayerNumber);
 
 		startedGameMyself_ = false;
+		boolean isHosting = onlineState == ONLINE_STATE.SERVER;
 		if (isHosting)
 		{
 			leaveServerButton_.setText("Stop hosting");
@@ -502,8 +448,15 @@ public class OnlinePlayersPanel
 	}
 	
 	// we only want to use enter and escape
-	public KeyListener getKeyListener(KeyEvent e)
+	@Override
+	public KeyListener getCurrentKeyListener(KeyEvent e)
 	{
+		if (isAskingUserConfirmation_)
+			return null;
+		
+		//else if (playerChoiceTable_.isAddingPlayer())
+		//	return playerChoiceTable_.;
+		
 		int kc = e.getKeyCode();
 		if (kc == KeyEvent.VK_ENTER
 				|| 	kc == KeyEvent.VK_ESCAPE)
@@ -524,20 +477,27 @@ public class OnlinePlayersPanel
 		
 		if (kc == KeyEvent.VK_ENTER)
 		{
-			if ( showPopup_)
-				popupEnterPressed();
-			else if (chatMsgField_.hasFocus())
+			//if ( showPopup_ )
+			//	popupEnterPressed();
+			//else if (chatMsgField_.hasFocus())
+
+			if (playerChoiceTable_.isAddingPlayer())
+				playerChoiceTable_.onPopupOK();
+			if (chatMsgField_.hasFocus())
 				sendChatMsg();
-			else if ( -1 != playerChoiceTable_.getEditingRow() )
-				playerChoiceTable_.getCellEditor().stopCellEditing();
+			//else if ( -1 != playerChoiceTable_.getEditingRow() )
+			//	playerChoiceTable_.getCellEditor().stopCellEditing();
 		}
 		
 		else if (kc == KeyEvent.VK_ESCAPE)
 		{
-			if (showPopup_)
-				hidePopup();
-			else if ( -1 != playerChoiceTable_.getEditingRow() )
-				playerChoiceTable_.getCellEditor().cancelCellEditing();
+			//if (showPopup_)
+			//	hidePopup();
+			//else if ( -1 != playerChoiceTable_.getEditingRow() )
+			//	playerChoiceTable_.getCellEditor().cancelCellEditing();
+			//else
+			if ( playerChoiceTable_.isAddingPlayer() )
+				playerChoiceTable_.closePopup();
 			else if ( ! isAskingUserConfirmation_ )
 				control_.showWelcomePanel();
 		}

@@ -1,15 +1,18 @@
-package org.paulpell.miam.gui.net;
+package org.paulpell.miam.gui.playertab;
 
 
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.TimerTask;
 import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -19,20 +22,35 @@ import javax.swing.border.Border;
 import org.paulpell.miam.gui.GlobalAnimationTimer;
 
 @SuppressWarnings("serial")
-public class AddPlayerPanel extends JPanel
+public class AddPlayerPanel
+	extends JPanel
 {
 	JTextField nameTextField_;
 	JComboBox<Integer> snakeIdChoice_;
+	IPopupCloser super_;
 	
-	public AddPlayerPanel()
+	public AddPlayerPanel(IPopupCloser popupCloser)
 	{
+		super_ = popupCloser;
+		
 		FlowLayout layout = new FlowLayout();
 		setLayout(layout);
 
 		add ( new JLabel("name:"));
 		
-		nameTextField_ = new JTextField(20);
+		nameTextField_ = new JTextField(13);
 		add ( nameTextField_ );
+		nameTextField_.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER)
+					super_.onPopupOK();
+			}
+			@Override
+			public void keyReleased(KeyEvent e) {}
+			@Override
+			public void keyPressed(KeyEvent e) {}
+		});
 		
 		snakeIdChoice_ = new JComboBox<Integer>();
 		add ( snakeIdChoice_ );
@@ -45,6 +63,15 @@ public class AddPlayerPanel extends JPanel
 			}
 		});
 		focusNameField();
+		
+		JButton add = new JButton("ok");
+		add(add);
+		add.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				super_.onPopupOK();
+			}
+		});
 	}
 	
 	private void focusNameField()
@@ -69,10 +96,10 @@ public class AddPlayerPanel extends JPanel
 		}, 200); // remove in 200 ms
 	}
 	
-	public void reset()
+	public void reset(String name, int snakeId, Vector <Integer> unusedIds)
 	{
-		nameTextField_.setText("");
-		setDisplayedSnakeIds (new Vector <Integer> ());
+		nameTextField_.setText(name);
+		setDisplayedSnakeIds (unusedIds);
 		setBorder(null);
 		repaint();
 	}
@@ -92,8 +119,7 @@ public class AddPlayerPanel extends JPanel
 	
 	public int getSnakeId()
 	{
-		if ( null != snakeIdChoice_ )
-			return -1;
-		return (Integer)snakeIdChoice_.getSelectedItem();
+		int i = (Integer)snakeIdChoice_.getSelectedItem();
+		return i;
 	}
 }

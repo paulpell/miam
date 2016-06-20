@@ -12,6 +12,7 @@ public class UndoableMove implements UndoableAction
 	
 	Collection <EditorDisplayElement> edes_;
 	
+	@SuppressWarnings("unchecked")
 	public UndoableMove(EditorDisplayElement newElement, EditorDisplayElement oldElement, Collection <?> edes)
 	{
 		newElement_ = newElement;

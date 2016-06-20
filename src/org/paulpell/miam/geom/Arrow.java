@@ -133,5 +133,11 @@ public class Arrow extends GeometricObject
 	{
 		return new Arrow(p1_.clone(), angle_, length_);
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "Arrow("+p1_+"->"+p2_+")";
+	}
 
 }

@@ -1,10 +1,10 @@
-package org.paulpell.miam.gui.ptab;
+package org.paulpell.miam.gui.ptab_oldpkg;
 
 import java.util.Vector;
 
 import javax.swing.table.AbstractTableModel;
 
-import org.paulpell.miam.net.PlayerInfo;
+import org.paulpell.miam.logic.players.PlayerInfo;
 
 /**
  * This table model will render <code>PlayerInfo</code>s. <p>

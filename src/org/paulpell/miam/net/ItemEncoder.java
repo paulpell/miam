@@ -26,7 +26,8 @@ public class ItemEncoder
 		LIGHTNING(new Lightning(0,0)),
 		REVERSE(new ReversingItem(0,0)),
 		SCORE(new ScoreItem(0,0)),
-		RESURRECT_ALL(new ResurrectAll(0,0));
+		RESURRECT_ALL(new ResurrectAll(0,0)),
+		;
 		
 		private static byte nextEnc = 0;
 		

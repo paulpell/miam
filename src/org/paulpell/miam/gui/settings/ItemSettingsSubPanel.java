@@ -1,5 +1,6 @@
 package org.paulpell.miam.gui.settings;
 
+import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -8,7 +9,6 @@ import java.util.LinkedList;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -19,12 +19,16 @@ import javax.swing.event.ChangeListener;
 
 import org.paulpell.miam.logic.Constants;
 import org.paulpell.miam.logic.Globals;
+import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.draw.items.AllTheItems;
 import org.paulpell.miam.logic.draw.items.Item;
+import org.paulpell.miam.logic.draw.items.ItemFactory;
 
 
 @SuppressWarnings("serial")
-public class ItemSettingsSubPanel extends Box
+public class ItemSettingsSubPanel
+	extends Box
+	implements ActionListener
 {
 
 	// this list stores the buttons to disable when score_only mode is activated:
@@ -33,6 +37,8 @@ public class ItemSettingsSubPanel extends Box
 
 	final JCheckBox itemsOnlyCB = new JCheckBox();
 	OneItemProbBoxes[] itemBoxes;
+	JLabel labelOccurence_;
+	JSlider sliderOccurence_;
 	
 	
 	public ItemSettingsSubPanel()
@@ -44,7 +50,7 @@ public class ItemSettingsSubPanel extends Box
 		addItemsProbs();
 		addItemOccurences();
 
-		addApplyButton();
+		//addApplyButton();
 		
 		setItemSettingsEnabled(!Globals.SCORE_ITEMS_ONLY);
 	}
@@ -53,12 +59,30 @@ public class ItemSettingsSubPanel extends Box
 	void apply()
 	{
 		Globals.SCORE_ITEMS_ONLY = itemsOnlyCB.isSelected();
+		String weightsDbg = "";
 		if (!Globals.SCORE_ITEMS_ONLY) {
 			int weights[] = new int[itemBoxes.length];
-			for (int i=0; i<weights.length; ++i)
-				weights[i] = itemBoxes[i].getSelectedWeight();
+			for (int iItemType=0; iItemType<weights.length; ++iItemType) {
+				weights[iItemType] = itemBoxes[iItemType].getSelectedWeight();
+				weightsDbg += "        " + AllTheItems.getItems()[iItemType].getTextDescription() + " = " + weights[iItemType] + "\n";
+			}
 			AllTheItems.setProbabilities(weights);
 		}
+		// handle items creation frequency
+		int occurIndex = sliderOccurence_.getValue();
+		ItemFactory.computeItemsCreationOccurence(occurIndex);
+		long occurMax = ItemFactory.TIME_BETWEEN_EXTRA_ITEMS_MAX;
+		long occurMin = ItemFactory.TIME_BETWEEN_EXTRA_ITEMS_MIN;
+		String occurStr = occurMin + "-" + occurMax + " ms";
+		labelOccurence_.setText("Items occurence: " + occurStr);
+		
+		Log.logMsg(
+				"Settings changed\n:" +
+				"    Score_only=" + Globals.SCORE_ITEMS_ONLY + "\n" +
+				"    Item probabilities:" + "\n" +
+				weightsDbg +
+				"    Occurences = " + occurStr
+				);
 	}
 	
 	
@@ -85,12 +109,12 @@ public class ItemSettingsSubPanel extends Box
 	
 	// adds boxes to specify the appearance probability for each item
 	void addItemsProbs() {
-		Item[] is = AllTheItems.getItems();
+		Item[] items = AllTheItems.getItems();
 		
 		JPanel itemProbsPanel = new JPanel();
-		itemProbsPanel.setLayout(new GridLayout(is.length + 1, 5));
+		itemProbsPanel.setLayout(new GridLayout(items.length + 1, 5));
 		
-		itemBoxes = new OneItemProbBoxes[is.length];
+		itemBoxes = new OneItemProbBoxes[items.length];
 		
 		// header of the table
 		itemProbsPanel.add(new JLabel(""));
@@ -99,20 +123,24 @@ public class ItemSettingsSubPanel extends Box
 		itemProbsPanel.add(new JLabel("mid"));
 		itemProbsPanel.add(new JLabel("high"));
 		
-		for (int i=0; i<is.length; ++i) {
-			itemProbsPanel.add(new JLabel(is[i].getTextDescription()));
-			itemBoxes[i] = new OneItemProbBoxes(is[i]);
-			JCheckBox cbs[] = itemBoxes[i].getCBs();
-			for (int j=0; j<cbs.length; ++j) {
-				compsToDisable.add(cbs[j]);
-				itemProbsPanel.add(cbs[j]);
+		for (int iItemType=0; iItemType<items.length; ++iItemType) {
+			//itemProbsPanel.add(new JLabel(is[i].getTextDescription()));
+			JLabel label = new JLabel(items[iItemType].getImageIcon());
+			label.setToolTipText(items[iItemType].getTextDescription());
+			itemProbsPanel.add(label);
+			itemBoxes[iItemType] = new OneItemProbBoxes(items[iItemType], this);
+			JCheckBox cbs[] = itemBoxes[iItemType].getCBs();
+			for (int iItemCB=0; iItemCB<cbs.length; ++iItemCB) {
+				compsToDisable.add(cbs[iItemCB]);
+				itemProbsPanel.add(cbs[iItemCB]);
+				cbs[iItemCB].addActionListener(this);
 			}
 		}
 		//compsToDisable.add(itemProbsPanel);
 		add(itemProbsPanel);//, BorderLayout.CENTER);
 	}
 	
-	void addApplyButton() {
+	/*void addApplyButton() {
 		JButton appB = new JButton("Apply");
 		add(appB);//, BorderLayout.SOUTH);
 		appB.addActionListener(new ActionListener() {
@@ -120,15 +148,39 @@ public class ItemSettingsSubPanel extends Box
 				apply();
 			}
 		});
-	}
+	}*/
 	
-	void setItemSettingsEnabled(boolean b) {
+	void setItemSettingsEnabled(boolean b)
+	{
 		for (int i=0; i<compsToDisable.size(); ++i)
 			compsToDisable.get(i).setEnabled(b);
+		apply();
 	}
 
-	private void addItemOccurences() {
-		Box occBox = new Box(BoxLayout.Y_AXIS);
+	private void addItemOccurences()
+	{
+		JPanel panel = new JPanel(new GridLayout());
+		GridBagConstraints constr = new GridBagConstraints();
+		//int maxVal = (int)Constants.DEFAULT_TIME_BETWEEN_ITEMS_MAX;
+		//int minVal = (int)Constants.DEFAULT_TIME_BETWEEN_ITEMS_MIN;
+		labelOccurence_ = new JLabel("Items occurence: ");
+		panel.add(labelOccurence_, constr);
+		
+		int numVals = Constants.TIMES_BETWEEN_ITEMS_OCCURENCES.length;
+		int val = Constants.DEFAULT_TIME_BETWEEN_ITEMS_OCCURENCE_INDEX;
+		sliderOccurence_ = new JSlider(1, numVals, val);
+		sliderOccurence_.addChangeListener(new ChangeListener()
+		{
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				apply();
+			}
+		});
+		constr.gridx = 1;
+		panel.add(sliderOccurence_, constr);
+		add(panel);
+		
+		/*Box occBox = new Box(BoxLayout.Y_AXIS);
 		JLabel title = new JLabel("Items occurence");
 		occBox.add(title);
 		int maxVal = (int)Constants.DEFAULT_TIME_BETWEEN_ITEMS_MAX;
@@ -159,6 +211,7 @@ public class ItemSettingsSubPanel extends Box
 					slideMax.setValue(minVal);
 					Globals.TIME_BETWEEN_EXTRA_ITEMS_MAX = minVal;
 				}
+					Globals.TIME_BETWEEN_EXTRA_ITEMS_MAX = minVal;
 				Globals.TIME_BETWEEN_EXTRA_ITEMS_MIN = minVal;
 				labMin.setText("max [" + minVal + " ms]: ");
 			}
@@ -177,14 +230,21 @@ public class ItemSettingsSubPanel extends Box
 				Globals.TIME_BETWEEN_EXTRA_ITEMS_MAX = maxVal;
 				labMax.setText("max [" + maxVal + " ms]: ");
 			}
-		});
+		});*/
+	}
+
+
+	@Override
+	public void actionPerformed(ActionEvent e)
+	{
+		apply();
 	}
 }
 
 class OneItemProbBoxes {
 	JCheckBox[] cbs = new JCheckBox[4];
 	
-	public OneItemProbBoxes(Item item) {
+	public OneItemProbBoxes(Item item, final ItemSettingsSubPanel itemsPanel) {
 		int selIndex = AllTheItems.getWeightIndex(item);
 		for (int i=0; i<4; ++i) {
 			cbs[i] = new JCheckBox();
@@ -195,6 +255,7 @@ class OneItemProbBoxes {
 				new ActionListener() {
 					public void actionPerformed(ActionEvent ev) {
 						select(j);
+						itemsPanel.apply();
 					}
 				}
 			);

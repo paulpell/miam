@@ -16,6 +16,7 @@ import org.paulpell.miam.logic.draw.items.Item;
 import org.paulpell.miam.logic.draw.snakes.Snake;
 import org.paulpell.miam.logic.gameactions.SnakeAction;
 import org.paulpell.miam.logic.levels.Level;
+import org.paulpell.miam.logic.players.PlayerInfo;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 
 
@@ -225,6 +226,10 @@ public class Client
 			
 		case ADD_PLAYER_REQUEST:
 			receivePlayerAddRequest(payload);
+			break;
+			
+		case ADD_PLAYER_DENY:
+			receivePlayerAddDeny(payload);
 			break;
 			
 		case PLAYER_LIST:
@@ -461,10 +466,19 @@ public class Client
 		control_.playerAddRequested(pi);
 	}
 	
-	public void sendPlayersList (Vector<PlayerInfo> players, Vector<Integer> unusedIds)
+	private void receivePlayerAddDeny( byte[] buf )
 	{
-		byte[] buf1 = new byte[1];
+		String denyReason = new String(buf);
+		control_.playerAddDenied(denyReason);//(pi)
+	}
+	
+	public void sendPlayersList (Vector<PlayerInfo> players, Vector<Integer> unusedIds, int numSeats)
+	{
+		byte[] buf1 = new byte[2];
+		assert players.size() <= Byte.MAX_VALUE;
+		assert numSeats <= Byte.MAX_VALUE;
 		buf1[0] = (byte)players.size();
+		buf1[1] = (byte)numSeats;
 		for (PlayerInfo pi : players)
 		{
 			int i0 = buf1.length;
@@ -488,17 +502,18 @@ public class Client
 	
 	private void receivePlayersList (byte[] buf)
 	{
-		int n = 0xFF & buf[0];
+		int nPlayers = 0xFF & buf[0];
+		int nSeats = 0xFF & buf[1];
 		Vector<PlayerInfo> pis = new Vector<PlayerInfo>();
-		int i0 = 1;
-		for (int i=0; i<n; ++i)
+		int i0 = 2;
+		for (int i=0; i<nPlayers; ++i)
 		{
 			int pilen = 0xFF & buf[i0];
 			byte[] pibs = NetMethods.getSubBytes(buf, i0+1, i0+1+pilen);
 			pis.add ( OnlineInfoEncoder.decodePlayerInfo(pibs));
 			i0 += 1+pilen;
 		}
-		control_.setPlayerInfos(pis);
+		control_.setRemotePlayerInfos(pis, nSeats);
 	}
 	
 	private void receiveClientLeaves(int cid, byte[] payload)
@@ -525,7 +540,7 @@ public class Client
 			index += 5 + namelen;
 		}*/
 		HashMap <Integer, ClientInfo> clientId2Infos = ClientInfo.makeNetClientList(payload);
-		control_.setClientInfos(clientId2Infos);
+		control_.setRemoteClientInfos(clientId2Infos);
 	}
 
 	public void sendSnakesWon(Vector<Snake> ss)

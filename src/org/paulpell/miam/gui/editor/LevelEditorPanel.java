@@ -60,10 +60,12 @@ public class LevelEditorPanel
 		toolsPanel_.setPositionText(pos);
 	}
 	
-
-	public void displayMessage(String msg)
+	@Override
+	public void displayMessage(String msg, boolean immediately)
 	{
 		leControl_.displayMessage(msg);
+		if (immediately)
+			repaint();
 	}
 	
 	public void keyPressed(KeyEvent arg0)
@@ -91,15 +93,25 @@ public class LevelEditorPanel
 		// nothing
 	}
 
-	public void tryLevel()
+	/*public void tryLevel()
 	{
 		leControl_.playEditedLevel();
-	}
+	}*/
 	
 	@Override
 	public boolean canRemovePanel()
 	{
 		return true;
+	}
+	
+	public EditorToolsPanel getToolsPanel()
+	{
+		return toolsPanel_;
+	}
+
+	@Override
+	public KeyListener getCurrentKeyListener(KeyEvent e) {
+		return this;
 	}
 
 }

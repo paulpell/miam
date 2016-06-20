@@ -2,8 +2,6 @@ package org.paulpell.miam.logic;
 
 import java.awt.Color;
 import java.awt.KeyboardFocusManager;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -19,9 +17,9 @@ import javax.swing.SwingUtilities;
 import org.paulpell.miam.geom.Pointd;
 import org.paulpell.miam.gui.GlobalColorTable;
 import org.paulpell.miam.gui.KeyMapping;
-import org.paulpell.miam.gui.LevelChooserFrame;
 import org.paulpell.miam.gui.MainFrame;
 import org.paulpell.miam.gui.MainKeyDispatcher;
+import org.paulpell.miam.gui.net.OnlinePlayersPanel;
 import org.paulpell.miam.logic.PAINT_STATE;
 import org.paulpell.miam.logic.draw.Drawable;
 import org.paulpell.miam.logic.draw.items.Item;
@@ -33,12 +31,13 @@ import org.paulpell.miam.logic.levels.Level;
 import org.paulpell.miam.logic.levels.LevelChoiceInfo;
 import org.paulpell.miam.logic.levels.LevelEditorControl;
 import org.paulpell.miam.logic.levels.LevelFileManager;
+import org.paulpell.miam.logic.players.PlayerInfo;
+import org.paulpell.miam.logic.players.PlayersManager;
 import org.paulpell.miam.net.ActionEncoder;
 import org.paulpell.miam.net.ClientInfo;
 import org.paulpell.miam.net.ItemEncoder;
 import org.paulpell.miam.net.NetMethods;
 import org.paulpell.miam.net.NetworkControl;
-import org.paulpell.miam.net.PlayerInfo;
 import org.paulpell.miam.net.TimestampedMessage;
 import org.paulpell.miam.net.LevelEncoder;
 
@@ -60,7 +59,6 @@ public class Control
 
 	LevelEditorControl leControl_;
 	
-	LevelChooserFrame levelChooserFrame_;
 	
 	NetworkControl networkControl_;
 	
@@ -77,10 +75,10 @@ public class Control
 	private HashMap <Integer, ClientInfo> clientId2Infos_;
 	
 	// players actually, can be 0..n on each client
-	private int currentPlayerSeats_; // max number of players online
+	//private int currentPlayerSeats_; // max number of players online
 	//private HashMap <Integer, PlayerInfo> playerId2Infos_; // actual players online
-	private Vector<PlayerInfo> playerInfos_;
-	
+	//private Vector<PlayerInfo> playerInfos_;
+	PlayersManager playerMgr_;
 	
 	private ItemFactory itemFactory_;
 	
@@ -96,9 +94,11 @@ public class Control
 				mainFrame_ = new MainFrame(Control.this); // will appear and stay
 				leControl_ = new LevelEditorControl(Control.this, mainFrame_);
 				mainFrame_.setLevelEditorControl(leControl_);
+				networkControl_ = new NetworkControl(Control.this, mainFrame_.getPlayersPanel(), mainFrame_.getServersPanel());
 
 				KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-				kfm.addKeyEventDispatcher(new MainKeyDispatcher(Control.this));
+				//kfm.addKeyEventDispatcher(new MainKeyDispatcher(Control.this));
+				kfm.addKeyEventDispatcher(new MainKeyDispatcher(mainFrame_));
 				
 				try
 				{
@@ -112,7 +112,6 @@ public class Control
 			}
 		});
 		
-		networkControl_ = new NetworkControl(this);
 	}
 	
 	@Override
@@ -158,12 +157,6 @@ public class Control
 		System.exit(0);
 	}
 	
-	
-	public PAINT_STATE getState()
-	{
-		return state_;
-	}
-	
 	public boolean isEditorLevelPlayed ()
 	{
 		return isEditorLevelPlayed_;
@@ -171,18 +164,19 @@ public class Control
 	
 	public boolean isGameRunning()
 	{
-		return state_ == PAINT_STATE.GAME;
+		return state_ == PAINT_STATE.GAME
+				|| state_ == PAINT_STATE.PAUSE;
 	}
 	
-	public boolean isHosting()
+	private boolean isHosting()
 	{
 		return networkControl_.isHosting();
 	}
-	public boolean isOffline()
+	private boolean isOffline()
 	{
 		return networkControl_.isOffline();
 	}
-	public boolean isClient()
+	private boolean isClient()
 	{
 		return networkControl_.isClient();
 	}
@@ -195,7 +189,7 @@ public class Control
 			state_ = PAINT_STATE.GAME;
 	}
 	
-	private void showNetworkPanel(final String msg)
+	public void showNetworkPanel(final String msg)
 	{
 		boolean showing = false;
 		if ( isOffline() )
@@ -207,7 +201,7 @@ public class Control
 		{
 			state_ = PAINT_STATE.OTHER_PANELS;
 			if (msg != null)
-				mainFrame_.displayMessage(msg);
+				mainFrame_.displayMessage(msg, false);
 		}
 	}
 	
@@ -215,6 +209,48 @@ public class Control
 	{
 		if (mainFrame_.showWelcomePanel())
 			state_ = PAINT_STATE.WELCOME;
+	}
+	/* Interaction methods (keyboard) ***************************/
+	/*public void escPressed()
+	{
+		switch (state_)
+		{
+		case WELCOME:
+			quit();
+			break;
+			
+		case GAME_OVER:
+		case VICTORY:
+			if ( isOffline() )
+				showWelcomePanel();
+			else
+				showNetSettingsPanel();
+			break;
+			
+		case GAME:
+		case PAUSE:
+			if (isOffline() || isHosting()) // client cannot stop game
+				endGame();
+			break;
+			
+		case OTHER_PANELS:
+			showWelcomePanel();
+			break;
+		}
+		
+		mainFrame_.repaint();
+	}*/
+	public void onGamePanelEsc()
+	{
+		if (isGameRunning()) {
+			endGame();
+		} else if (isOffline()) {
+			showWelcomePanel();
+		} else {
+			if ( isHosting() )
+				onlineLastLevelChoice_ = null;
+			showNetworkPanel("Try again =)");
+		}
 	}
 	
 	
@@ -255,7 +291,6 @@ public class Control
 	// also used in case of victory
 	private void endGameDetails()
 	{
-
 		if (isEditorLevelPlayed_ || isOffline() || isHosting())
 		{
 			gameTimer_.cancel();
@@ -263,14 +298,17 @@ public class Control
 			mainFrame_.repaint();
 		}
 
-
 		if (isEditorLevelPlayed_)
 		{
 			isEditorLevelPlayed_ = false;
-			Utils.threadSleep(2000);
+			mainFrame_.displayMessage("Back to editor in 3 seconds..", true);
+			Utils.threadSleep(1000);
+			mainFrame_.displayMessage("  2 seconds..", true);
+			Utils.threadSleep(1000);
+			mainFrame_.displayMessage("  1 second..", true);
+			Utils.threadSleep(1000);
 			mainFrame_.showLevelEditor();
 		}
-		
 	}
 	
 	private boolean setLevelForNewGame(LevelChoiceInfo linfo)
@@ -292,7 +330,7 @@ public class Control
 			{
 				Log.logErr("Cannot open level: " + e.getMessage());
 				Log.logException(e);
-				mainFrame_.displayMessage("Cannot open level: " + e.getMessage());
+				mainFrame_.displayMessage("Cannot open level: " + e.getMessage(), false);
 				return false;
 			}
 		}
@@ -301,17 +339,6 @@ public class Control
 		
 		return true;
 		
-	}
-	
-	private LevelChoiceInfo chooseLevel()
-	{
-		levelChooserFrame_ = new LevelChooserFrame(mainFrame_);
-		// getLevelInfo is blocking: calls thread's wait and is notified
-		// when user chooses a level
-		LevelChoiceInfo lci = levelChooserFrame_.getLevelInfo(); 
-		levelChooserFrame_ = null; // needed for correct keyevent dispatching
-		
-		return lci;
 	}
 	
 	public void playEditedGame(Level l)
@@ -337,7 +364,10 @@ public class Control
 		return game_;
 	}
 	
-	
+	public PlayersManager getPlayersManager()
+	{
+		return playerMgr_;
+	}
 	
 	// Local game
 
@@ -369,7 +399,8 @@ public class Control
 	
 	private void fireLevelChooser()
 	{
-		boolean shouldbehere = state_ == PAINT_STATE.WELCOME
+		boolean shouldbehere =
+					state_ == PAINT_STATE.WELCOME
 				|| state_ == PAINT_STATE.GAME_OVER
 				|| state_ == PAINT_STATE.VICTORY;
 		assert shouldbehere : "Shuold not fire level chooser";
@@ -379,7 +410,7 @@ public class Control
 		{
 			public void run()
 			{
-				LevelChoiceInfo linfo = chooseLevel();
+				LevelChoiceInfo linfo = mainFrame_.chooseLevel();
 				if (null == linfo) // cancelled
 					return;
 				
@@ -387,7 +418,7 @@ public class Control
 				if (loaded)
 					startLocalGame();
 				else
-					mainFrame_.displayMessage("Cannot create game");
+					mainFrame_.displayMessage("Cannot create game", false);
 			}
 		}.start();
 	}
@@ -411,11 +442,13 @@ public class Control
 	{
 		if (game_ == null)
 		{
-			mainFrame_.displayMessage("No game loaded now, sorry");
+			mainFrame_.displayMessage("No game loaded now, sorry", false);
 			networkControl_.sendErrorMessage();
 			return;
 		}
 		
+		boolean gamePanel = mainFrame_.showGamePanel();
+		assert gamePanel;
 		mainFrame_.paintIsGameover(false);
 		mainFrame_.stopPaintVictory();
 		showGamePanel();
@@ -430,10 +463,12 @@ public class Control
 		if (loaded)
 		{
 			onlineLastLevelChoice_ = linfo;
+			boolean gamePanel = mainFrame_.showGamePanel();
+			assert gamePanel;
 			startMasterGame();
 		}
 		else
-			mainFrame_.displayMessage("Cannot create game");
+			mainFrame_.displayMessage("Cannot create game", false);
 		
 		
 	}
@@ -443,14 +478,14 @@ public class Control
 		assert isHosting() : "starting master game only on host";
 		
 		//int numSlaves = gameServer_.getSlaveNumber();
-		boolean hasSlaveClients = networkControl_.hasSlaveClients();
+		//boolean hasSlaveClients = networkControl_.hasSlaveClients();
 		pendingItems_.removeAllElements();
 		slaveActions_.clear();
 		
-		String errMsg = null;
-		Exception ex = null;
+		//String errMsg = null;
+		//Exception ex = null;
 
-		if (hasSlaveClients)
+		if (networkControl_.hasSlaveClients())
 		{
 			try
 			{
@@ -459,25 +494,17 @@ public class Control
 			}
 			catch (IOException e)
 			{
-				ex = e;
-				errMsg = "Cannot send game data: " + e.getMessage();
+				//ex = e;
+				String errMsg = "Cannot send game data: " + e.getMessage();
+				mainFrame_.displayMessage(errMsg, false);
+				Log.logErr(errMsg);
+				Log.logException(e);
 			}
 		}
-				
-				
-		if ( null == ex )
-		{
-			startItemFactory();
-			startGameTimer(createMasterGameTimerTask());
-			showGamePanel();
-		}
-		else // error!
-		{
-			mainFrame_.displayMessage(errMsg);
-			Log.logErr(errMsg);
-			assert null != ex : "e should be set with errMsg";
-			Log.logException(ex);
-		}
+
+		startItemFactory();
+		startGameTimer(createMasterGameTimerTask());
+		showGamePanel();
 
 	}
 	
@@ -500,6 +527,7 @@ public class Control
 		final boolean hasSlaveClients = networkControl_.hasSlaveClients();
 		return new TimerTask()
 		{
+			@Override
 			public void run()
 			{
 				if (state_ == PAINT_STATE.GAME)
@@ -543,38 +571,44 @@ public class Control
 		};
 	}
 	
-	private void onKeyPressedAction(int key)
+	public void onGameKeyPressed(int key)
 	{
 		if (state_ == PAINT_STATE.GAME)
 		{
 			SnakeAction action = KeyMapping.getPressedAction(key);
-			handleActionTaken(action);
+			if (action != null) {
+				int sid = action.getSnakeIndex();
+				if (isOffline() || playerMgr_.isSnakeHere(sid)) {
+					handleActionTaken(action);
+				} else {
+					Log.logErr("Key ignored; Remote snake");
+				}
+			}
 		}
 	}
 	
-	private void onKeyReleasedAction(int key)
+	public void onGameKeyReleased(int key)
 	{
-		if (state_ == PAINT_STATE.GAME || state_ == PAINT_STATE.PAUSE)
+		if (isGameRunning())
 		{
 			SnakeAction action = KeyMapping.getReleasedAction(key);
-			handleActionTaken(action);
+			if (action != null) {
+				handleActionTaken(action);
+			}
 		}
 	}
 	
 	private void handleActionTaken(SnakeAction action)
 	{
-		if (action != null)
+		if ( isOffline() )
 		{
-			if ( isOffline() )
-			{
-				int snakeI = action.getSnakeIndex();
-				action.perform(game_.getSnake(snakeI));
-			}
-			else if ( isHosting() )
-				addSlaveAction(action);
-			else
-				sendAction(action);
+			int snakeI = action.getSnakeIndex();
+			action.perform(game_.getSnake(snakeI));
 		}
+		else if ( isHosting() )
+			addSlaveAction(action);
+		else
+			networkControl_.sendAction(action);
 	}
 	
 	private void addSlaveAction(SnakeAction action)
@@ -637,12 +671,12 @@ public class Control
 	
 	/* Settings ******************************************/
 	
-	private void showSettingsPanel()
+	public void showSettingsPanel()
 	{
 		if (mainFrame_.showSettingsPanel())
 			state_ = PAINT_STATE.OTHER_PANELS;
 	}
-	private void showNetSettingsPanel()
+	/*private void showNetSettingsPanel()
 	{
 		if ( isOffline() )
 			assert false : "Network settings called when offline";
@@ -653,50 +687,22 @@ public class Control
 		}
 		else
 			mainFrame_.showPlayersSettings(false);
-	}
+	}*/
 	
 
 	/* Fire up the level editor *********************************/
-	private void showLevelEditor()
+	public void showLevelEditor()
 	{
 		if (mainFrame_.showLevelEditor())
 			state_ = PAINT_STATE.OTHER_PANELS;
 	}
 	
-	/* Interaction methods (keyboard) ***************************/
-	public void escPressed()
-	{
-		switch (state_)
-		{
-		case WELCOME:
-			System.out.println("ESC => exit");
-			System.exit(0);	
-			break;
-			
-		case GAME_OVER:
-		case VICTORY:
-			if ( isOffline() )
-				showWelcomePanel();
-			else
-				showNetSettingsPanel();
-			break;
-			
-		case GAME:
-		case PAUSE:
-			if (isOffline() || isHosting()) // client cannot stop game
-				endGame();
-			break;
-			
-		case OTHER_PANELS:
-			showWelcomePanel();
-			break;
-		}
-		
-		mainFrame_.repaint();
-	}
+	
 	
 	public void newPressed()
 	{
+		if (isGameRunning())
+			return;
 		if ( isOffline() )
 			fireLevelChooser();
 		else if ( isHosting() )
@@ -708,10 +714,21 @@ public class Control
 
 	}
 	
+	public void quit()
+	{
+		System.out.println("ESC => exit");
+		mainFrame_.setVisible(false);
+		mainFrame_.dispose();
+		System.exit(0);	
+	}
+	
 
 	/* Pause *******************************/
-	private void togglePause()
+	public void togglePause()
 	{
+		if ( ! isOffline()) // no pause in online mode
+			return;
+		
 		if (state_ == PAINT_STATE.PAUSE)
 		{
 			state_ = PAINT_STATE.GAME;
@@ -727,24 +744,11 @@ public class Control
 			mainFrame_.paintIsGameInPause(true);
 		}
 	}
-	
-	// can return null
-	public KeyListener whoShouldReceiveKeyEvents(KeyEvent e)
-	{
-		if (null != levelChooserFrame_)
-			return levelChooserFrame_;
-		
-		KeyListener mfkl = mainFrame_.getCurrentKeyListener(e);
-		if (null != mfkl)
-			return mfkl;
-
-		return null;
-	}
-	
+	/*
 	public void keyPressed(int key)
 	{
 		
-		/* Always valid */
+		/* Always valid * /
 		switch(key)
 		{
 		case VK_ESCAPE:
@@ -756,55 +760,23 @@ public class Control
 		}
 		
 		/* Game time interaction */
-		if (state_ == PAINT_STATE.GAME)
+		/*if (state_ == PAINT_STATE.GAME)
 		{
 			onKeyPressedAction(key);
-		}
+		}* /
 	
 
-		if (state_ == PAINT_STATE.GAME || state_ == PAINT_STATE.PAUSE)
+		/*if (state_ == PAINT_STATE.GAME || state_ == PAINT_STATE.PAUSE)
 		{
 			if (key == VK_P && isOffline()) // no pause in online mode
 				togglePause();
-		}
-		
-		else
-		{
-		/* outside game ****/
-			switch(key)
-			{
-			case VK_S:
-				showSettingsPanel();
-				break;
-				
-			case VK_SPACE:
-			case VK_N:
-				newPressed();
-				break;
-				
-			case VK_E:
-				showLevelEditor();
-				break;
-				
-			case VK_O:
-				showNetworkPanel(null);
-				break;
-				
-			default:
-				break;
-			}
-		}
+		}* /
 	}
-	
-	public void keyReleased(int key)
+	*/
+	/*public void keyReleased(int key)
 	{
 		onKeyReleasedAction(key);
-	}
-	
-	public void sendAction(SnakeAction action)
-	{
-		networkControl_.sendAction(action);
-	}
+	}*/
 	
 	public void receiveSlaveAction(SnakeAction action)
 	{
@@ -849,7 +821,8 @@ public class Control
 			
 			
 			// finally apply the valid actions and send them
-			Log.logErr("Action: " + validActions.size() + " actions");
+			//if (Globals.ACTION_DEBUG)
+			//	Log.logErr("Action: (Step master game)" + validActions.size() + " actions");
 			String stepString = "" + (char)validActions.size();
 			for (SnakeAction a: validActions)
 			{
@@ -893,7 +866,7 @@ public class Control
 		}
 		catch (UnknownHostException e)
 		{
-			mainFrame_.displayMessage("Unknown host: "+ host);
+			mainFrame_.displayMessage("Unknown host: "+ host, false);
 			return;
 		}
 	}
@@ -905,13 +878,16 @@ public class Control
 		{
 			stopClient();
 			
+			OnlinePlayersPanel playersPanel = mainFrame_.getPlayersPanel();
+			playerMgr_ = new PlayersManager(networkControl_, -1, playersPanel);
+			playersPanel.setPlayersManager(playerMgr_);
 			networkControl_.joinGame(addr);
 
 			resetConnectedInfo();
 
-			mainFrame_.resetPlayersNetworkPanel(0, false);
+			mainFrame_.resetPlayersNetworkPanel(0, networkControl_.onlineState());
 			mainFrame_.showPlayersSettings(false);
-			mainFrame_.displayMessage("Connected to " + addr);
+			mainFrame_.displayMessage("Connected to " + addr, false);
 		}
 		catch (IllegalThreadStateException ite)
 		{
@@ -919,7 +895,7 @@ public class Control
 		}
 		catch (IOException e)
 		{
-			mainFrame_.displayMessage("Error: " + e.getLocalizedMessage());
+			mainFrame_.displayMessage("Error: " + e.getLocalizedMessage(), false);
 		}
 	}
 	
@@ -958,9 +934,7 @@ public class Control
 								+ ": " + msg;
 		networkFeedback(s);
 		
-		for ( PlayerInfo pi : playerInfos_ )
-			if ( pi.getClientId() == cid )
-				playerInfos_.remove(pi);
+		playerMgr_.removeByCliendIt(cid);
 
 		updateConnectedInfo();
 	}
@@ -981,10 +955,10 @@ public class Control
 	}*/
 	
 	// called from GUI
-	public void playersNumberFixed ( int n )
+	/*public void playersNumberFixed ( int n )
 	{
 		currentPlayerSeats_ = n;
-	}
+	}*/
 	
 	/*public boolean canHaveMorePlayers(int snakesNumber)
 	{
@@ -1000,64 +974,19 @@ public class Control
 		return false;
 	}*/
 	
-	private void addPlayer(PlayerInfo pi)
-	{
-		assert isHosting() : "Add player only by server";
-		//playerId2Infos_.put (pi.getSnakeId() , pi);
-		playerInfos_.add(pi);
-		if ( playerInfos_ .size() == currentPlayerSeats_ )
-			mainFrame_.setMaxPlayerNumReached(true);
-		updateConnectedInfo();
-	}
-	
-	// return null if we can add the player, otherwise
-	// a message explaining why not
-	@SuppressWarnings("incomplete-switch")
-	private String checkAddPlayer(PlayerInfo pi)
-	{
-		for ( PlayerInfo pi2 : playerInfos_ )
-		{
-			switch (pi.equalsOnline(pi2))
-			{
-			case NAME_EQUAL: return "That name is already used";
-			case SNAKE_ID_EQUAL: return "That snake color (id) is already used";
-			}
-		}
-		return null;
-	}
-	
-	// 
-	public boolean tryAddPlayer(String name, int snakeId)
-	{
-		assert ! isOffline() : "adding player when offline!";
-
-		int thiscid = networkControl_.getClientId();
-		char letter = getClientLetter(thiscid);
-		PlayerInfo pi = new PlayerInfo(name, snakeId, thiscid, letter);
-		String msg = checkAddPlayer(pi);
-		
-		if ( null != msg)
-		{
-			mainFrame_.displayMessage(msg);
-			return false;
-		}
-		
-		if ( isHosting() )
-			addPlayer (pi);
-		else
-			networkControl_.sendAddPlayerRequest(pi);
-		return true;
-	}
-	
 	// check if the new PlayerInfo is allowed..
 	public void playerAddRequested (PlayerInfo pi)
 	{
 		assert isHosting() : "Only host should receive player add request";
-		String msg = checkAddPlayer(pi);
+		String msg = playerMgr_.checkAddPlayer(pi);
 		if ( null == msg )// accepted
-			addPlayer(pi);
-		else // reject; the reason is encoded in pi.name_
+			playerMgr_.addPlayer(pi);
+		else // rejected
 			networkControl_.sendDenyAddPlayerRequest(pi.getClientId(), msg);
+	}
+
+	public void playerAddDenied(String denyReason) {
+		playerMgr_.playerAddRequestDenied(denyReason);
 	}
 	
 	public void onConnectionLost (boolean kicked)
@@ -1067,17 +996,6 @@ public class Control
 				"The server is stopping" :
 				"Kicked by the server";
 		showNetworkPanel(msg);
-	}
-	
-	public void leaveServer()
-	{
-		if ( isClient() )
-			stopClient();
-		
-		if (isHosting())
-			stopServer(); // calls stopClient()
-		
-		showNetworkPanel(null);
 	}
 	
 	private void stopClient()
@@ -1094,7 +1012,7 @@ public class Control
 	{
 		if ( isClient() )
 		{
-			mainFrame_.displayMessage("Server died... Sorry");
+			mainFrame_.displayMessage("Server died... Sorry", false);
 			if (state_ == PAINT_STATE.GAME)
 				endGame();
 			stopClient();
@@ -1103,25 +1021,28 @@ public class Control
 	
 	public void hostGame()
 	{
-		networkControl_.startHosting();
-		currentPlayerSeats_ = Globals.ONLINE_DEFAULT_MAX_PLAYER_NUMBER;
-		
-		resetConnectedInfo();
-
-		mainFrame_.resetPlayersNetworkPanel(currentPlayerSeats_, true);
-		mainFrame_.showPlayersSettings(true);
-		
-		displayServerMessage("Server started");
-
-		String name =  "server";
-		ClientInfo masterClientInfo = new ClientInfo(0, name);
-
-		clientJoined(masterClientInfo);
+		int maxNumPlayers = Globals.ONLINE_DEFAULT_MAX_PLAYER_NUMBER;
+		OnlinePlayersPanel playersPanel = mainFrame_.getPlayersPanel();
+		playerMgr_ = new PlayersManager(networkControl_, maxNumPlayers, playersPanel);
+		playersPanel.setPlayersManager(playerMgr_);
+		boolean hosting = networkControl_.startHosting();
+		if (hosting) {
+			resetConnectedInfo();
+	
+			mainFrame_.resetPlayersNetworkPanel(maxNumPlayers, networkControl_.onlineState());
+			mainFrame_.showPlayersSettings(true);
+			
+			displayServerMessage("Server started");
+	
+			String name =  "server";
+			ClientInfo masterClientInfo = new ClientInfo(0, name);
+			clientJoined(masterClientInfo);
+		}
 	}
 
 	public void networkFeedback(String message)
 	{
-		mainFrame_.displayMessage(message);
+		mainFrame_.displayMessage(message, false);
 	}
 	
 	public char getClientLetter(int clientId)
@@ -1146,80 +1067,38 @@ public class Control
 		networkFeedback(message);
 	}
 	
-	public void setClientInfos(HashMap <Integer, ClientInfo> clientId2Infos)
+	public void setRemoteClientInfos(HashMap <Integer, ClientInfo> clientId2Infos)
 	{
 		assert isClient() : "Only client should receive clients list";
 		clientId2Infos_ = clientId2Infos;
 		updateConnectedInfoGUI();
 	}
 	
-	public void setPlayerInfos(Vector <PlayerInfo> playerInfos)
+	public void setRemotePlayerInfos(Vector <PlayerInfo> playerInfos, int numSeats)
 	{
 		assert isClient() : "Only client should receive players list";
-		playerInfos_ = playerInfos;
+		playerMgr_.setRemotePlayersInfo(playerInfos, numSeats);
 		updateConnectedInfoGUI();
+		//mainFrame_.getPlayersPanel().repaint();
+		//mainFrame_.repaint();
 	}
 	
-	private int findFirstUnusedSnakeId()
-	{
-		Vector<Integer> test = findAllUnusedSnakeIds();
-		assert test.size() > 0 : "bad programmer";
-		return test.get(0);
-	}
-	
-	private Vector<Integer> findAllUnusedSnakeIds()
-	{
-		Vector<Integer> ids = new Vector<Integer> ();
-		for (int i=0; i<=GlobalColorTable.getMaxSnakeColor(); ++i)
-			ids.add(i);
-		for (PlayerInfo pi: playerInfos_)
-			ids.remove((Integer)pi.getSnakeId());
-		return ids;
-	}
-	
-	// colorIndex is equal to snakeIndex..
-	public void playerChoseColor (int playerIndex, int colorIndex)
-	{
-		for (int i=0; i<playerInfos_.size(); ++i)
-		{
-			if ( i != playerIndex)
-				if (colorIndex == playerInfos_.get(i).getSnakeId())
-					assert false : "Color should not be selectable";
-		}
-		playerInfos_.get(playerIndex).setSnakeId(colorIndex);
-	}
-	
-	public void playerChangedName (int playerIndex, String name)
-	{
-		assert playerIndex <= playerInfos_.size() : "bad programmer";
-		// create new entry 
-		if ( playerIndex == playerInfos_.size() )
-		{
-			int sid = findFirstUnusedSnakeId();
-			tryAddPlayer(name, sid);
-		}
-		// or update
-		else
-		{
-			playerInfos_.get(playerIndex).setName(name);
-		}
-		updateConnectedInfo();
-	}
 	
 	private void resetConnectedInfo()
 	{
-		playerInfos_ = new Vector <PlayerInfo> ();
+		playerMgr_.reset();
 		clientId2Infos_ = new HashMap <Integer, ClientInfo> ();
 	}
-	
+
 	private void updateConnectedInfo()
 	{
 		assert isHosting() : "Connected info update only on server";
-		Vector<Integer> unusedIds = findAllUnusedSnakeIds();
 		updateConnectedInfoGUI();
 
 		networkControl_.sendClientsList(clientId2Infos_.values());
-		networkControl_.sendPlayersList(playerInfos_, unusedIds);
+		int numSeats = playerMgr_.getNumberSeats();
+		Vector<Integer> unusedIds = playerMgr_.getUnusedColors();
+		networkControl_.sendPlayersInfo(playerMgr_.getPlayerList(), unusedIds, numSeats);
 	}
 	
 	private void updateConnectedInfoGUI()
@@ -1230,8 +1109,8 @@ public class Control
 			clientNames.add(ci.toString());
 		
 		mainFrame_.setConnectedClients(clientNames);
-
-		mainFrame_.setPlayers(playerInfos_, findAllUnusedSnakeIds(), this);
+		Vector<Integer> unusedIds = playerMgr_.getUnusedColors();
+		mainFrame_.setPlayers(playerMgr_.getPlayerList(), unusedIds, this);
 		
 	}
 	
@@ -1246,7 +1125,7 @@ public class Control
 		}
 		catch (IOException e)
 		{
-			mainFrame_.displayMessage("Could not send message: "+e.getLocalizedMessage());
+			mainFrame_.displayMessage("Could not send message: "+e.getLocalizedMessage(), false);
 		}
 	}
 	
@@ -1275,7 +1154,7 @@ public class Control
 			networkControl_.sendLevel(game_.getLevel());
 		} catch (Exception e) 
 		{
-			mainFrame_.displayMessage("Could not send network level: "+e.getMessage());
+			mainFrame_.displayMessage("Could not send network level: "+e.getMessage(), false);
 			Log.logErr("Could not send network level: " + e.getMessage());
 			Log.logException(e);
 		}
@@ -1294,7 +1173,7 @@ public class Control
 			game_ = new RemoteGame(this, level);
 		} catch (Exception e)
 		{
-			mainFrame_.displayMessage("Could not receive network level: "+e.getMessage());
+			mainFrame_.displayMessage("Could not receive network level: "+e.getMessage(), false);
 			Log.logErr("Could not receive network level: " + e.getMessage());
 			Log.logException(e);
 		}
@@ -1308,7 +1187,8 @@ public class Control
 		int actionsNr = stepString.charAt(0);
 		stepString = stepString.substring(1);
 		
-		Log.logErr("Action: " + actionsNr + " actions");
+		//if (Globals.ACTION_DEBUG)
+		//	Log.logErr("Action (Step slave game): " + actionsNr + " actions");
 		for (int i=0; i<actionsNr; ++i)
 		{
 			String action = stepString.substring(0,actionSize);

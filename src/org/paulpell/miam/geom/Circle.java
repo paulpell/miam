@@ -131,4 +131,10 @@ public class Circle extends GeometricObject
 	{
 		return new Circle(position_.clone(), radius_);
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "Circle(R="+radius_+",C="+position_+")";
+	}
 }

@@ -6,6 +6,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -24,7 +26,9 @@ import org.paulpell.miam.gui.AbstractDisplayPanel;
 import org.paulpell.miam.logic.Control;
 
 @SuppressWarnings("serial")
-public class OnlineServersPanel extends AbstractDisplayPanel
+public class OnlineServersPanel
+	extends AbstractDisplayPanel
+	implements KeyListener
 {
 	
 	Control control_;
@@ -55,7 +59,7 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 	
 
 	@Override
-	public void displayMessage(String message)
+	public void displayMessage(String message, boolean immediately)
 	{
 		msgArea_.setText(message);
 	}
@@ -211,10 +215,10 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 			hostsList_.setSelectedIndex(0);
 	}
 	
-	public void reset()
+	/*public void reset()
 	{
 		msgArea_.setText("");
-	}
+	}*/
 
 
 	@Override
@@ -222,5 +226,33 @@ public class OnlineServersPanel extends AbstractDisplayPanel
 	{
 		return true;
 	}
+
+	@Override
+	public KeyListener getCurrentKeyListener(KeyEvent e)
+	{
+
+		int kc = e.getKeyCode();
+		if (kc == KeyEvent.VK_ESCAPE)
+			return this;
+		return null;
+	}
+
+
+	@Override
+	public void keyTyped(KeyEvent e)
+	{}
+
+	@Override
+	public void keyPressed(KeyEvent e)
+	{
+		int kc = e.getKeyCode();
+		if (kc == KeyEvent.VK_ESCAPE)
+			control_.showWelcomePanel();
+
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e)
+	{}
 
 }

@@ -228,5 +228,11 @@ public class Rectangle extends GeometricObject
 	{
 		return new Rectangle(p1_.clone(), p2_.clone(), fill_);
 	}
+	
+	@Override
+	public String toString()
+	{
+		return "Rect("+p1_+"->"+p2_+")";
+	}
 
 }

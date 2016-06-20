@@ -1,4 +1,4 @@
-package org.paulpell.miam.gui.ptab;
+package org.paulpell.miam.gui.ptab_oldpkg;
 
 import java.awt.Component;
 

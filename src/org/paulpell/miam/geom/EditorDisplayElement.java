@@ -78,4 +78,11 @@ public abstract class EditorDisplayElement
 		return cloned;
 	}
 
+	
+	@Override
+	public String toString()
+	{
+		return shape_.toString();
+	}
+
 }

@@ -61,7 +61,7 @@ public class EditorArrow extends EditorDisplayElement
 		throw new IllegalArgumentException("Not selected");
 	}
 
-	public double getAngle()
+	public double getAngleRad()
 	{
 		return arrow_.angle_;
 	}

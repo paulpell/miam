@@ -208,7 +208,8 @@ public class Segment extends Line
 	{
 		return new Segment(p1_.clone(), p2_.clone());
 	}
-	
+
+	@Override
 	public String toString()
 	{
 		return "Segment(" + p1_ + " - " + p2_ + ")";

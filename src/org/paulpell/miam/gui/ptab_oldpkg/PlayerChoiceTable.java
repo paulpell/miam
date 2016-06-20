@@ -1,4 +1,4 @@
-package org.paulpell.miam.gui.ptab;
+package org.paulpell.miam.gui.ptab_oldpkg;
 
 import java.awt.Component;
 import java.util.Vector;
@@ -10,7 +10,7 @@ import javax.swing.table.TableCellRenderer;
 import org.paulpell.miam.gui.net.ChoosePlayerColor;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.net.PlayerInfo;
+import org.paulpell.miam.logic.players.PlayerInfo;
 
 @SuppressWarnings("serial")
 public class PlayerChoiceTable
@@ -68,25 +68,30 @@ public class PlayerChoiceTable
 		model_.setPlayerInfos(playerInfos);
 		
 		// remove old listener if present
-		if (null != playerInfoChangeListener_)
+		if (null != playerInfoChangeListener_) {
 			nameCellEditor_.removeCellEditorListener(playerInfoChangeListener_);
-		
+			colorCellEditor_.removeCellEditorListener(playerInfoChangeListener_);
+		}
 		
 		chooseColorsComboboxes_.removeAllElements();
 		// update color choices
 		for (PlayerInfo pi : playerInfos)
 		{
-			unusedColors.insertElementAt(pi.getSnakeId(), 0); // first color: the selected one
-			ChoosePlayerColor cpc = new ChoosePlayerColor(unusedColors, playerInfoChangeListener_);
+			Vector<Integer> availableColors = new Vector<Integer>(unusedColors);
+			availableColors.insertElementAt(pi.getSnakeId(), 0); // first color: the selected one
+			ChoosePlayerColor cpc = new ChoosePlayerColor(availableColors);//, playerInfoChangeListener_);
 			cpc.selectColorFromTableIndex(pi.getSnakeId());
 			chooseColorsComboboxes_.add(cpc);
 		}
 		
 		colorCellEditor_.setChooseColorComboboxes(chooseColorsComboboxes_);
+		// create and register the new listener
 		playerInfoChangeListener_ = new PlayerInfoChangeListener(control, this, chooseColorsComboboxes_);
+		for (ChoosePlayerColor cpc : chooseColorsComboboxes_)
+			cpc.addActionListener(playerInfoChangeListener_);
 		nameCellEditor_.addCellEditorListener(playerInfoChangeListener_);
 		colorCellEditor_.addCellEditorListener(playerInfoChangeListener_);
-		
+		repaint();
 	}
 	
 	public String getPlayerName (int row)
@@ -112,7 +117,7 @@ public class PlayerChoiceTable
 			cpc.selectColorFromTableIndex(sid);
 			return cpc;
 		}
-		Log.logErr("TableCellRenderer(" + row + ","+column+ "):  received v = " + value);
+		Log.logErr("TableCellRenderer(" + row + ","+column+ "):  received val = " + value);
 		return null;
 	}
 

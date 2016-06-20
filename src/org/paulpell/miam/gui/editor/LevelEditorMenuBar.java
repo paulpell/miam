@@ -18,8 +18,45 @@ public class LevelEditorMenuBar extends JMenuBar
 
 	public LevelEditorMenuBar(final LevelEditorControl lec)
 	{
+		addSnakesssMenu(lec);
 		addFileMenu(lec);
 		addEditMenu(lec);
+	}
+	
+	private void addSnakesssMenu(final LevelEditorControl lec)
+	{
+		JMenu snakesssMenu = new JMenu("Snakesss");
+		snakesssMenu.setMnemonic(KeyEvent.VK_S);
+
+		// back to main menu
+		JMenuItem mainMenuItem = new JMenuItem("Main menu");
+		mainMenuItem.setMnemonic(KeyEvent.VK_M);
+		mainMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0));
+		mainMenuItem.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent arg0)
+			{
+				lec.onEscPressed();
+			}
+		});
+		snakesssMenu.add(mainMenuItem);
+		
+		// try the game
+		JMenuItem tryGameItem = new JMenuItem("Try level");
+		tryGameItem.setMnemonic(KeyEvent.VK_T);
+		tryGameItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, Event.CTRL_MASK));
+		tryGameItem.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent arg0)
+			{
+				lec.playEditedLevel();
+			}
+		});
+		snakesssMenu.add(tryGameItem);
+		
+		add(snakesssMenu);
 	}
 	
 	private void addFileMenu(final LevelEditorControl lec)

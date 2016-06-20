@@ -1,5 +1,7 @@
 package org.paulpell.miam.gui;
 
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -10,6 +12,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
+import java.awt.event.WindowListener;
 import java.util.Vector;
 
 import javax.swing.Icon;
@@ -28,20 +31,25 @@ import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.levels.LevelChoiceInfo;
 
+import sun.awt.WindowClosingListener;
+
 @SuppressWarnings("serial")
 public class LevelChooserFrame
 		extends JFrame
 		implements KeyListener,
-					WindowFocusListener
+					WindowFocusListener,
+					WindowListener
 {
 
 	JButton chooseButton_;
 	LevelListPanel levelPanel_;
 	JComboBox<Integer> snakeNoList_;
 	
+	int currentSelection_ = 0; // mod 2 to switch numSnakes - level
+	
 	private boolean userCancel_ = false; // to indicate that user pressed ESC
 	
-	public LevelChooserFrame(final Frame f)
+	public LevelChooserFrame(final Component f)
 	{
 		SwingUtilities.invokeLater(new Runnable()
 		{
@@ -52,7 +60,7 @@ public class LevelChooserFrame
 		});
 	}
 	
-	private void createGUI(final Frame parent)
+	private void createGUI(final Component parent)
 	{
 		GridBagLayout layout = new GridBagLayout();
 		setLayout(layout);
@@ -110,9 +118,18 @@ public class LevelChooserFrame
 		add(chooseButton_, c);
 		
 		addWindowFocusListener(this);
+		addWindowListener(this);
 
-		setLocationRelativeTo(parent);
+		//setLocationRelativeTo(parent);
 		pack();
+		
+		Dimension dim = getPreferredSize();
+		Dimension parentDim = parent.getSize();
+		
+		int x = (parentDim.width-dim.width)/2;
+		int y = (parentDim.height-dim.height)/2;
+		setLocation(x, y);
+		
 		setVisible(true);
 	}
 	
@@ -123,6 +140,12 @@ public class LevelChooserFrame
 		{
 			notify();
 		}
+	}
+	
+	private void cancelDialog()
+	{
+		userCancel_ = true;
+		endWait();
 	}
 	
 	// returns null if user cancels (esc)
@@ -146,6 +169,7 @@ public class LevelChooserFrame
 		{
 			ListModel<Integer> lm = snakeNoList_.getModel();
 			int sNo = lm.getElementAt(snakeNoList_.getSelectedIndex());
+			Globals.NUMBER_OF_SNAKES = sNo;
 			String lname = levelPanel_.getLevelName();
 			linfo = new LevelChoiceInfo(lname, sNo);
 		}
@@ -154,6 +178,45 @@ public class LevelChooserFrame
 		dispose();
 		
 		return linfo;
+	}
+	
+	private void changeNumSnakes(int iDir)
+	{
+		int nItems = snakeNoList_.getItemCount();
+		int iSel = snakeNoList_.getSelectedIndex();
+		if (iSel <= 0 && iDir < 0)
+			iSel = nItems - 1;
+		else if (iSel >= nItems-1 && iDir > 0)
+			iSel = 0;
+		else
+			iSel += iDir;
+		snakeNoList_.setSelectedIndex(iSel);
+	}
+	
+	// provide -1 for down, +1 for up
+	private void keyArrow(int iDir)
+	{
+		switch (currentSelection_) {
+		case 0:
+			levelPanel_.incrementLevel(iDir);
+			break;
+		case 1: 
+			changeNumSnakes(iDir);
+			break;
+		}
+	}
+	
+	private void focusNextComponent()
+	{
+		currentSelection_ = 1 - currentSelection_;
+		switch (currentSelection_) {
+		case 0:
+			levelPanel_.requestFocus();
+			break;
+		case 1: 
+			snakeNoList_.requestFocus();
+			break;
+		}
 	}
 
 
@@ -165,21 +228,24 @@ public class LevelChooserFrame
 	{
 		switch (arg0.getKeyCode())
 		{
+		case KeyEvent.VK_TAB:
+			focusNextComponent();
+			break;
+			
 		case KeyEvent.VK_ENTER:
 			endWait();
 			break;
 			
 		case KeyEvent.VK_UP:
-			levelPanel_.incrementLevel(1);
+			keyArrow(1);
 			break;
 
 		case KeyEvent.VK_DOWN:
-			levelPanel_.incrementLevel(-1);
+			keyArrow(-1);
 			break;
 			
 		case KeyEvent.VK_ESCAPE:
-			userCancel_ = true;
-			endWait();
+			cancelDialog();
 			break;
 			
 		default:
@@ -199,6 +265,35 @@ public class LevelChooserFrame
 	{
 		toFront();
 		requestFocus();
+	}
+
+	@Override
+	public void windowActivated(WindowEvent e) {
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) {
+		cancelDialog();
+	}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+	}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+	}
+
+	@Override
+	public void windowIconified(WindowEvent e) {
+	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {
 	}
 
 }

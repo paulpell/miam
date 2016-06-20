@@ -10,7 +10,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellRenderer;
 
 import org.paulpell.miam.logic.Log;
-import org.paulpell.miam.net.PlayerInfo;
+import org.paulpell.miam.logic.players.PlayerInfo;
 
 @SuppressWarnings("serial")
 public class PlayerChoiceTable__________OLD

@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
+import org.paulpell.miam.logic.players.PlayerInfo;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 
 public class MasterClient extends Client

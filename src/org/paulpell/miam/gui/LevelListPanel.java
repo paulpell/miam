@@ -58,4 +58,10 @@ public class LevelListPanel extends JPanel
 		int i = (levelChoice_.getSelectedIndex() + di + c) % c;
 		levelChoice_.setSelectedIndex(i);
 	}
+	
+	@Override
+	public void setEnabled(boolean enabled)
+	{
+		levelChoice_.setEnabled(enabled);
+	}
 }
