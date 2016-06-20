@@ -22,8 +22,8 @@ public class OnlineInfoEncoder
 	
 	protected static PlayerInfo decodePlayerInfo (byte[] buf)
 	{
-		byte[] sidbs = NetMethods.getSubBytes(buf, 0, 4);
-		byte[] cidbs = NetMethods.getSubBytes(buf, 4, 8);
+		byte[] cidbs = NetMethods.getSubBytes(buf, 0, 4);
+		byte[] sidbs = NetMethods.getSubBytes(buf, 4, 8);
 		char letter = (char)(0xFF & buf[8]);
 		byte[] namebs = NetMethods.getSubBytes(buf, 9, buf.length);
 		int sid = NetMethods.bytes2int(sidbs);

@@ -36,6 +36,8 @@ public enum EditorItemsToolsEnum
 	public class ItemToggleButton
 		extends JToggleButton
 	{
+		private static final long serialVersionUID = 9213232211471801108L;
+	
 		int margin = 2; // px
 		int width_;
 		int height_;

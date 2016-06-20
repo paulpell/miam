@@ -3,11 +3,11 @@ package org.paulpell.miam.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Event;
 import java.awt.Graphics;
+import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.Point;
+import java.awt.Rectangle;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -135,10 +135,32 @@ public class MainFrame
 		levelEditorPanel_ = leControl.getLevelEditorPanel();
 	}
 
+	private GraphicsConfiguration getSameGraphicsConfig()
+	{
+		GraphicsConfiguration myConf = getGraphicsConfiguration();
+		GraphicsDevice myDev = myConf.getDevice();
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice[] gs = ge.getScreenDevices();
+		for (int iDev=0; iDev<gs.length; ++iDev) {
+			GraphicsConfiguration[] gcs = gs[iDev].getConfigurations();
+			for (int iCfg=0; iCfg<gcs.length; ++iCfg) {
+				Rectangle rect = gcs[iCfg].getBounds();
+				if (myDev == gs[iDev] && myConf == gcs[iCfg]) {
+					Log.logErr("Found same device, bounds are: " + rect);
+					GraphicsConfiguration conf = gs[iDev].getDefaultConfiguration();
+					return conf;
+				}
+			}
+		}
+		Log.logErr("Could not find an appropriate graphics device");
+		return null;
+	}
 	
 	public LevelChoiceInfo chooseLevel()
 	{
-		levelChooserFrame_ = new LevelChooserFrame(this);
+
+		
+		levelChooserFrame_ = new LevelChooserFrame(this, getSameGraphicsConfig());
 		// getLevelInfo is blocking: calls thread's wait and is notified
 		// when user chooses a level
 		LevelChoiceInfo lci = levelChooserFrame_.getLevelInfo(); 
@@ -326,13 +348,13 @@ public class MainFrame
 			gamePanel_.displayActualFPS(fps);
 	}
 	
-	private void moveWindow(int dx, int dy) 
+	/*private void moveWindow(int dx, int dy) 
 	{
 		Point pos = getLocation();
 		pos.x += dx;
 		pos.y += dy;
 		setLocation(pos);
-	}
+	}*/
 
 	/* User keyboard interface ***********************************/
 

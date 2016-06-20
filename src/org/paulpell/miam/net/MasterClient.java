@@ -13,9 +13,9 @@ public class MasterClient extends Client
 	
 	Server server_;
 
-	public MasterClient(Control control)
+	public MasterClient(Control control, NetworkControl netControl)
 	{
-		super(control);
+		super(control, netControl);
 		clientId_ = 0;
 	}
 

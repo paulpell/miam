@@ -37,6 +37,7 @@ public class Server extends Thread
 	private final ServerSocket serverSocket_;
 	
 	Control control_;
+	private final NetworkControl netControl_;
 	
 	Client masterClient_;
 	
@@ -51,12 +52,13 @@ public class Server extends Thread
 	
 	boolean ending_ = false;
 	
-	public Server(Control control, Client masterClient)
+	public Server(Control control, Client masterClient, NetworkControl netControl)
 			throws IOException
 	{
 		super("Server");
 		control_ = control;
 		masterClient_ = masterClient;
+		netControl_ = netControl;
 		
 		serverWorkers_ = new HashMap<Integer, ServerWorker>();
 		lastIds_ = new LinkedList<Integer>();
@@ -99,7 +101,7 @@ public class Server extends Thread
 				serverWorkers_.put(cid, sw);
 				
 				String name = newSocket.getInetAddress().getCanonicalHostName();
-				control_.clientJoined(new ClientInfo(sw.getClientId(), name));
+				netControl_.clientJoined(new ClientInfo(sw.getClientId(), name));
 			}
 		} catch (IOException e)
 		{
@@ -132,7 +134,7 @@ public class Server extends Thread
 			Log.logMsg("Error ServerWorker(" + id + ")");
 		}
 		
-		control_.clientError(id, msg);
+		netControl_.clientError(id, msg);
 	}
 	
 	public void end()

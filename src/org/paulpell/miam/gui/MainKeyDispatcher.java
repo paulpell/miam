@@ -7,29 +7,23 @@ import java.awt.event.KeyListener;
 
 import javax.swing.KeyStroke;
 
-import org.paulpell.miam.logic.Control;
 import org.paulpell.miam.logic.Log;
 
 public class MainKeyDispatcher implements KeyEventDispatcher
 {
 
-//	Control control_;
 	MainFrame mainFrame_;
 	
 	
-	public MainKeyDispatcher(MainFrame mainFrame)//Control control)
+	public MainKeyDispatcher(MainFrame mainFrame)
 	{
 		mainFrame_ = mainFrame;
-		//control_ = control;
 	}
 	
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e)
 	{
-		int modctrl = Event.CTRL_MASK;
-		int altctrl = Event.ALT_MASK;
 		int mod = e.getModifiers();
-		Log.logErr("Keyev: mod=" + mod + ", ctrl=" + modctrl + ", alt=" + altctrl);
 		
 		// if alt or ctrl, let Java do the job =)
 		if (0 != (mod & Event.CTRL_MASK))
@@ -38,7 +32,6 @@ public class MainKeyDispatcher implements KeyEventDispatcher
 			return false;
 		
 		KeyListener kl = mainFrame_.getCurrentKeyListener(e);
-		//KeyListener kl = control_.dispatchKeyEvent(e);
 		if (null != kl)
 		{
 			KeyStroke ks = KeyStroke.getKeyStrokeForEvent(e);

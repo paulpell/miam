@@ -5,7 +5,6 @@ import java.awt.KeyboardFocusManager;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -43,9 +42,6 @@ import org.paulpell.miam.net.LevelEncoder;
 
 
 
-import static java.awt.event.KeyEvent.*;
-
-
 public class Control
 {
 
@@ -60,7 +56,8 @@ public class Control
 	LevelEditorControl leControl_;
 	
 	
-	NetworkControl networkControl_;
+	NetworkControl networkControl_; // handles network activity (TODO, move more there) and maintains clients list
+	PlayersManager playerMgr_;	// manages the actual snakes
 	
 	LevelChoiceInfo onlineLastLevelChoice_;
 
@@ -71,18 +68,8 @@ public class Control
 	
 	long lastFrameTime_;
 
-	// connected clients
-	private HashMap <Integer, ClientInfo> clientId2Infos_;
-	
-	// players actually, can be 0..n on each client
-	//private int currentPlayerSeats_; // max number of players online
-	//private HashMap <Integer, PlayerInfo> playerId2Infos_; // actual players online
-	//private Vector<PlayerInfo> playerInfos_;
-	PlayersManager playerMgr_;
 	
 	private ItemFactory itemFactory_;
-	
-	
 	
 	
 	public Control()
@@ -97,7 +84,6 @@ public class Control
 				networkControl_ = new NetworkControl(Control.this, mainFrame_.getPlayersPanel(), mainFrame_.getServersPanel());
 
 				KeyboardFocusManager kfm = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-				//kfm.addKeyEventDispatcher(new MainKeyDispatcher(Control.this));
 				kfm.addKeyEventDispatcher(new MainKeyDispatcher(mainFrame_));
 				
 				try
@@ -152,8 +138,8 @@ public class Control
 	public void onClose()
 	{
 		// announce we leave
-		stopServer();
-		stopClient();
+		networkControl_.stopServer();
+		networkControl_.stopClient();
 		System.exit(0);
 	}
 	
@@ -210,36 +196,7 @@ public class Control
 		if (mainFrame_.showWelcomePanel())
 			state_ = PAINT_STATE.WELCOME;
 	}
-	/* Interaction methods (keyboard) ***************************/
-	/*public void escPressed()
-	{
-		switch (state_)
-		{
-		case WELCOME:
-			quit();
-			break;
-			
-		case GAME_OVER:
-		case VICTORY:
-			if ( isOffline() )
-				showWelcomePanel();
-			else
-				showNetSettingsPanel();
-			break;
-			
-		case GAME:
-		case PAUSE:
-			if (isOffline() || isHosting()) // client cannot stop game
-				endGame();
-			break;
-			
-		case OTHER_PANELS:
-			showWelcomePanel();
-			break;
-		}
-		
-		mainFrame_.repaint();
-	}*/
+
 	public void onGamePanelEsc()
 	{
 		if (isGameRunning()) {
@@ -274,16 +231,11 @@ public class Control
 	
 	public void endGame()
 	{
-		
-
-		
 		if (isHosting())
 			networkControl_.sendGameEnd();
 
 		mainFrame_.paintIsGameover(true);
-
 		state_ = PAINT_STATE.GAME_OVER;
-		
 		endGameDetails();
 	}
 	
@@ -336,7 +288,6 @@ public class Control
 		}
 		
 		game_ = new Game(this, level);
-		
 		return true;
 		
 	}
@@ -350,12 +301,9 @@ public class Control
 
 		mainFrame_.toFront();
 		mainFrame_.requestFocus();
-		
 
 		startItemFactory();
-
 		startGameTimer(createLocalGameTimerTask());
-		
 		showGamePanel();
 	}
 	
@@ -364,19 +312,12 @@ public class Control
 		return game_;
 	}
 	
-	public PlayersManager getPlayersManager()
-	{
-		return playerMgr_;
-	}
-	
 	// Local game
 
 	private void startLocalGame()
 	{	
 		startItemFactory();
-
 		startGameTimer(createLocalGameTimerTask());
-		
 		showGamePanel();
 	}
 	
@@ -477,13 +418,8 @@ public class Control
 	{
 		assert isHosting() : "starting master game only on host";
 		
-		//int numSlaves = gameServer_.getSlaveNumber();
-		//boolean hasSlaveClients = networkControl_.hasSlaveClients();
 		pendingItems_.removeAllElements();
 		slaveActions_.clear();
-		
-		//String errMsg = null;
-		//Exception ex = null;
 
 		if (networkControl_.hasSlaveClients())
 		{
@@ -494,7 +430,6 @@ public class Control
 			}
 			catch (IOException e)
 			{
-				//ex = e;
 				String errMsg = "Cannot send game data: " + e.getMessage();
 				mainFrame_.displayMessage(errMsg, false);
 				Log.logErr(errMsg);
@@ -514,11 +449,8 @@ public class Control
 		if (null != gameTimer_)
 			gameTimer_.cancel();
 		gameTimer_ = new Timer("game-update");
-
 		lastFrameTime_ = System.currentTimeMillis();
-		
 		gameTimer_.scheduleAtFixedRate(task, 0, 1000 / Globals.FPS);
-
 	}
 	
 	
@@ -676,18 +608,6 @@ public class Control
 		if (mainFrame_.showSettingsPanel())
 			state_ = PAINT_STATE.OTHER_PANELS;
 	}
-	/*private void showNetSettingsPanel()
-	{
-		if ( isOffline() )
-			assert false : "Network settings called when offline";
-		else if ( isHosting() )
-		{
-			onlineLastLevelChoice_ = null;
-			mainFrame_.showPlayersSettings(true);
-		}
-		else
-			mainFrame_.showPlayersSettings(false);
-	}*/
 	
 
 	/* Fire up the level editor *********************************/
@@ -696,8 +616,6 @@ public class Control
 		if (mainFrame_.showLevelEditor())
 			state_ = PAINT_STATE.OTHER_PANELS;
 	}
-	
-	
 	
 	public void newPressed()
 	{
@@ -744,39 +662,6 @@ public class Control
 			mainFrame_.paintIsGameInPause(true);
 		}
 	}
-	/*
-	public void keyPressed(int key)
-	{
-		
-		/* Always valid * /
-		switch(key)
-		{
-		case VK_ESCAPE:
-			escPressed();
-			return;
-			
-		default:
-			break;
-		}
-		
-		/* Game time interaction */
-		/*if (state_ == PAINT_STATE.GAME)
-		{
-			onKeyPressedAction(key);
-		}* /
-	
-
-		/*if (state_ == PAINT_STATE.GAME || state_ == PAINT_STATE.PAUSE)
-		{
-			if (key == VK_P && isOffline()) // no pause in online mode
-				togglePause();
-		}* /
-	}
-	*/
-	/*public void keyReleased(int key)
-	{
-		onKeyReleasedAction(key);
-	}*/
 	
 	public void receiveSlaveAction(SnakeAction action)
 	{
@@ -792,8 +677,6 @@ public class Control
 		
 		// invalid actions will be kept for the next round
 		HashSet<SnakeAction> invalidActions = new HashSet<SnakeAction>();
-		
-		
 
 		synchronized (slaveActions_)
 		{
@@ -819,10 +702,7 @@ public class Control
 				}
 			}
 			
-			
 			// finally apply the valid actions and send them
-			//if (Globals.ACTION_DEBUG)
-			//	Log.logErr("Action: (Step master game)" + validActions.size() + " actions");
 			String stepString = "" + (char)validActions.size();
 			for (SnakeAction a: validActions)
 			{
@@ -840,7 +720,7 @@ public class Control
 	////////////////////////////////////////////
 	// 
 	// Network methods
-	public void joinGame(String host)
+	public void tryJoinGame(String host)
 	{
 		if (isHosting())
 		{
@@ -873,13 +753,13 @@ public class Control
 	
 	private void joinGame(InetAddress addr)
 	{
-		
 		try
 		{
-			stopClient();
+			networkControl_.stopClient();
 			
 			OnlinePlayersPanel playersPanel = mainFrame_.getPlayersPanel();
 			playerMgr_ = new PlayersManager(networkControl_, -1, playersPanel);
+			networkControl_.setPlayerManager(playerMgr_);
 			playersPanel.setPlayersManager(playerMgr_);
 			networkControl_.joinGame(addr);
 
@@ -899,81 +779,6 @@ public class Control
 		}
 	}
 	
-	public void clientJoined(ClientInfo info)
-	{
-		assert isHosting() : "clientJoined() only for server!";
-		int cid = info.getClientId();
-		clientId2Infos_.put(cid, info);
-		if ( 0 != cid )
-			displayServerMessage("New client accepted : " + info);
-		updateConnectedInfo();
-	}
-	
-	// this is announced by the server itself
-	public void clientError(int cid, String reason)
-	{
-		assert isHosting() : "clientError() only for server!";
-		goneClientHandling(cid, reason, true);
-	}
-	
-	public void clientLeft(int cid, String msg)
-	{
-		assert isHosting() : "clientLeft() only for server!";
-		goneClientHandling(cid, msg, false);
-	}
-	
-	private void goneClientHandling(int cid, String msg, boolean isError)
-	{
-		ClientInfo ci = clientId2Infos_.remove(cid);
-		
-		assert null != ci : "null client to remove??";
-		
-		networkControl_.removeClient(cid);
-		
-		String s = ci + " " + (isError ? "error" : "left")
-								+ ": " + msg;
-		networkFeedback(s);
-		
-		playerMgr_.removeByCliendIt(cid);
-
-		updateConnectedInfo();
-	}
-	
-	/*public Vector<Integer> getValidPlayerIds(int totalnum)
-	{
-		Vector<Integer> validids = new Vector<Integer>();
-		for (int i=0; i<totalnum; ++i)
-			validids.add(i);
-		
-		for ( PlayerInfo pi : playerId2Infos_.values() )
-		{
-			Integer id = pi.getSnakeId();
-			validids.remove(id);
-		}
-		
-		return validids;
-	}*/
-	
-	// called from GUI
-	/*public void playersNumberFixed ( int n )
-	{
-		currentPlayerSeats_ = n;
-	}*/
-	
-	/*public boolean canHaveMorePlayers(int snakesNumber)
-	{
-		assert ! isOffline() : "canHaveMorePlayers only online!";
-		return snakesNumber > playerInfos_.size();
-	}*/
-	
-	/*private boolean isPlayerNameUsed(String name)
-	{
-		for (PlayerInfo pi : playerId2Infos_.values() )
-			if (pi.getName().equals(name))
-				return true;
-		return false;
-	}*/
-	
 	// check if the new PlayerInfo is allowed..
 	public void playerAddRequested (PlayerInfo pi)
 	{
@@ -991,21 +796,11 @@ public class Control
 	
 	public void onConnectionLost (boolean kicked)
 	{
-		stopClient();
+		networkControl_.stopClient();
 		String msg = kicked ?
 				"The server is stopping" :
 				"Kicked by the server";
 		showNetworkPanel(msg);
-	}
-	
-	private void stopClient()
-	{
-		networkControl_.stopClient();
-	}
-	
-	public void stopServer()
-	{
-		networkControl_.stopServer();
 	}
 	
 	public void serverDied()
@@ -1015,7 +810,7 @@ public class Control
 			mainFrame_.displayMessage("Server died... Sorry", false);
 			if (state_ == PAINT_STATE.GAME)
 				endGame();
-			stopClient();
+			networkControl_.stopClient();
 		}
 	}
 	
@@ -1024,19 +819,20 @@ public class Control
 		int maxNumPlayers = Globals.ONLINE_DEFAULT_MAX_PLAYER_NUMBER;
 		OnlinePlayersPanel playersPanel = mainFrame_.getPlayersPanel();
 		playerMgr_ = new PlayersManager(networkControl_, maxNumPlayers, playersPanel);
+		networkControl_.setPlayerManager(playerMgr_);
 		playersPanel.setPlayersManager(playerMgr_);
-		boolean hosting = networkControl_.startHosting();
+		boolean hosting = networkControl_.startServer();
 		if (hosting) {
 			resetConnectedInfo();
 	
 			mainFrame_.resetPlayersNetworkPanel(maxNumPlayers, networkControl_.onlineState());
 			mainFrame_.showPlayersSettings(true);
 			
-			displayServerMessage("Server started");
+			networkFeedback("Server started");
 	
 			String name =  "server";
 			ClientInfo masterClientInfo = new ClientInfo(0, name);
-			clientJoined(masterClientInfo);
+			networkControl_.clientJoined(masterClientInfo);
 		}
 	}
 
@@ -1045,33 +841,14 @@ public class Control
 		mainFrame_.displayMessage(message, false);
 	}
 	
-	public char getClientLetter(int clientId)
-	{
-		ClientInfo info = clientId2Infos_.get(clientId);
-		if ( null == info )
-			return '?';
-		return info.getLetter();
-	}
-	
 	public void displayChatMessage(String message, int from)
 	{
-		ClientInfo info = clientId2Infos_.get(from);
+		
+		ClientInfo info = networkControl_.getClientFromId(from);
 		String name = "" + from;
 		if (null != info)
 			name = info.toString();
 		networkFeedback(name + ": " + message);
-	}
-	
-	public void displayServerMessage(String message)
-	{
-		networkFeedback(message);
-	}
-	
-	public void setRemoteClientInfos(HashMap <Integer, ClientInfo> clientId2Infos)
-	{
-		assert isClient() : "Only client should receive clients list";
-		clientId2Infos_ = clientId2Infos;
-		updateConnectedInfoGUI();
 	}
 	
 	public void setRemotePlayerInfos(Vector <PlayerInfo> playerInfos, int numSeats)
@@ -1079,33 +856,19 @@ public class Control
 		assert isClient() : "Only client should receive players list";
 		playerMgr_.setRemotePlayersInfo(playerInfos, numSeats);
 		updateConnectedInfoGUI();
-		//mainFrame_.getPlayersPanel().repaint();
-		//mainFrame_.repaint();
 	}
 	
 	
 	private void resetConnectedInfo()
 	{
 		playerMgr_.reset();
-		clientId2Infos_ = new HashMap <Integer, ClientInfo> ();
-	}
-
-	private void updateConnectedInfo()
-	{
-		assert isHosting() : "Connected info update only on server";
-		updateConnectedInfoGUI();
-
-		networkControl_.sendClientsList(clientId2Infos_.values());
-		int numSeats = playerMgr_.getNumberSeats();
-		Vector<Integer> unusedIds = playerMgr_.getUnusedColors();
-		networkControl_.sendPlayersInfo(playerMgr_.getPlayerList(), unusedIds, numSeats);
+		networkControl_.resetConnectedInfo();
 	}
 	
-	private void updateConnectedInfoGUI()
+	public void updateConnectedInfoGUI()
 	{
 		Vector <String> clientNames = new Vector <String> ();
-		
-		for (ClientInfo ci : clientId2Infos_.values())
+		for (ClientInfo ci : networkControl_.clientInfos())
 			clientNames.add(ci.toString());
 		
 		mainFrame_.setConnectedClients(clientNames);
@@ -1187,8 +950,6 @@ public class Control
 		int actionsNr = stepString.charAt(0);
 		stepString = stepString.substring(1);
 		
-		//if (Globals.ACTION_DEBUG)
-		//	Log.logErr("Action (Step slave game): " + actionsNr + " actions");
 		for (int i=0; i<actionsNr; ++i)
 		{
 			String action = stepString.substring(0,actionSize);

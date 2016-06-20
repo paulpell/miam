@@ -1,11 +1,12 @@
 package org.paulpell.miam.gui;
 
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Frame;
+import java.awt.GraphicsConfiguration;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -31,7 +32,6 @@ import org.paulpell.miam.logic.Globals;
 import org.paulpell.miam.logic.Log;
 import org.paulpell.miam.logic.levels.LevelChoiceInfo;
 
-import sun.awt.WindowClosingListener;
 
 @SuppressWarnings("serial")
 public class LevelChooserFrame
@@ -49,8 +49,9 @@ public class LevelChooserFrame
 	
 	private boolean userCancel_ = false; // to indicate that user pressed ESC
 	
-	public LevelChooserFrame(final Component f)
+	public LevelChooserFrame(final JFrame f, GraphicsConfiguration gConf)
 	{
+		super(gConf);
 		SwingUtilities.invokeLater(new Runnable()
 		{
 			public void run()
@@ -60,7 +61,7 @@ public class LevelChooserFrame
 		});
 	}
 	
-	private void createGUI(final Component parent)
+	private void createGUI(final JFrame parent)
 	{
 		GridBagLayout layout = new GridBagLayout();
 		setLayout(layout);
@@ -120,16 +121,16 @@ public class LevelChooserFrame
 		addWindowFocusListener(this);
 		addWindowListener(this);
 
-		//setLocationRelativeTo(parent);
 		pack();
 		
+		Rectangle bounds = getGraphicsConfiguration().getBounds();
+		Point pLoc = parent.getLocation();		
 		Dimension dim = getPreferredSize();
 		Dimension parentDim = parent.getSize();
 		
-		int x = (parentDim.width-dim.width)/2;
-		int y = (parentDim.height-dim.height)/2;
+		int x = bounds.x + pLoc.x + (parentDim.width-dim.width)/2;
+		int y = bounds.y + pLoc.y + (parentDim.height-dim.height)/2;
 		setLocation(x, y);
-		
 		setVisible(true);
 	}
 	

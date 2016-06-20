@@ -73,7 +73,7 @@ public class OnlineServersPanel
 	private void joinGame()
 	{
 		String host = hostsList_.getSelectedValue();
-		control_.joinGame(host);
+		control_.tryJoinGame(host);
 	}
 	
 

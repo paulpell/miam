@@ -46,11 +46,13 @@ public class Client
 	boolean listening_ = true;
 	
 	private final Control control_;
+	private final NetworkControl netControl_;
 	
-	public Client(Control control)
+	public Client(Control control, NetworkControl netControl)
 	{
 		super("NetClient");
 		control_ = control;
+		netControl_ = netControl;
 	}
 	
 	public InetAddress getAddr()
@@ -519,28 +521,13 @@ public class Client
 	private void receiveClientLeaves(int cid, byte[] payload)
 	{
 		String msg = null == payload ? "" : new String(payload);
-		control_.clientLeft(cid, msg);
+		netControl_.clientLeft(cid, msg);
 	}
 	
 	private void receiveClientsList(byte[] payload)
 	{
-		/*HashMap <Integer, ClientInfo> clientId2Infos = new HashMap<Integer, ClientInfo>();
-		int nr = (int)msg.charAt(0);
-		byte[] encoded = msg.getBytes();
-		int index = 1;
-		for (int i=0; i<nr; ++i)
-		{
-			byte[] idbs = NetMethods.getSubBytes(encoded, index, index+4);
-			int id = NetMethods.bytes2int(idbs);
-			int namelen = (int)(0xFF & encoded[index+4]);
-			byte[] namebs = NetMethods.getSubBytes(encoded, index + 5, index + 5 + namelen);
-			String name = new String(namebs);
-			ClientInfo ci = new ClientInfo(id, name);
-			clientId2Infos.put(id, ci);
-			index += 5 + namelen;
-		}*/
 		HashMap <Integer, ClientInfo> clientId2Infos = ClientInfo.makeNetClientList(payload);
-		control_.setRemoteClientInfos(clientId2Infos);
+		netControl_.setRemoteClientInfos(clientId2Infos);
 	}
 
 	public void sendSnakesWon(Vector<Snake> ss)

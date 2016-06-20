@@ -17,6 +17,7 @@ import org.paulpell.miam.logic.draw.snakes.Snake;
 import org.paulpell.miam.logic.gameactions.SnakeAction;
 import org.paulpell.miam.logic.levels.Level;
 import org.paulpell.miam.logic.players.PlayerInfo;
+import org.paulpell.miam.logic.players.PlayersManager;
 import org.paulpell.miam.net.TimestampedMessage.MsgTypes;
 
 public class NetworkControl
@@ -28,9 +29,10 @@ public class NetworkControl
 	
 	Server server_ = null;
 	Client client_ = null; // can also be a MasterClient
+	PlayersManager playerMgr_;
 	
 	// connected clients
-	// TODO : private HashMap <Integer, ClientInfo> clientId2Infos_;
+	private HashMap <Integer, ClientInfo> clientId2Infos_;
 	
 	// gui elements
 	OnlinePlayersPanel onlinePlayersPanel_;
@@ -44,6 +46,11 @@ public class NetworkControl
 		onlinePlayersPanel_ = onlinePlayersPanel;
 		onlinePlayersPanel_.setNetworkControl(this);
 		onlineServersPanel_ = onlineServersPanel;
+	}
+	
+	public void setPlayerManager(PlayersManager playerMgr)
+	{
+		playerMgr_ = playerMgr;
 	}
 	
 	public String getNetStatusStr ()
@@ -81,13 +88,88 @@ public class NetworkControl
 		return onlineState_;
 	}
 	
+
+	public void resetConnectedInfo()
+	{
+		clientId2Infos_ = new HashMap <Integer, ClientInfo> ();
+	}
+	
 	public PlayerInfo makePlayerInfo(String name, int snakeId)
 	{
 		int cid = client_.getClientId();
-		char letter = control_.getClientLetter(cid);
+		ClientInfo info = clientId2Infos_.get(cid);
+		char letter = null == info ? '?' : info.getLetter();
 		return new PlayerInfo(name, snakeId, cid, letter);
 	}
 	
+	public ClientInfo getClientFromId(int id)
+	{
+		return clientId2Infos_.get(id);
+	}
+	
+	public void setRemoteClientInfos(HashMap <Integer, ClientInfo> clientId2Infos)
+	{
+		assert isClient() : "Only client should receive clients list";
+		clientId2Infos_ = clientId2Infos;
+		control_.updateConnectedInfoGUI();
+	}
+	
+	public Collection<ClientInfo> clientInfos()
+	{
+		return clientId2Infos_.values();
+	}
+
+	private void updateConnectedInfo()
+	{
+		assert isHosting() : "Connected info update only on server";
+		control_.updateConnectedInfoGUI();
+
+		sendClientsList(clientId2Infos_.values());
+		int numSeats = playerMgr_.getNumberSeats();
+		Vector<Integer> unusedIds = playerMgr_.getUnusedColors();
+		sendPlayersInfo(playerMgr_.getPlayerList(), unusedIds, numSeats);
+	}
+
+	
+	public void clientJoined(ClientInfo info)
+	{
+		assert isHosting() : "clientJoined() only for server!";
+		int cid = info.getClientId();
+		clientId2Infos_.put(cid, info);
+		if ( 0 != cid )
+			control_.networkFeedback("New client accepted : " + info);
+		updateConnectedInfo();
+	}
+	
+	public void clientLeft(int cid, String msg)
+	{
+		assert isHosting() : "clientLeft() only for server!";
+		goneClientHandling(cid, msg, false);
+	}
+	
+	private void goneClientHandling(int cid, String msg, boolean isError)
+	{
+		ClientInfo ci = clientId2Infos_.remove(cid);
+		
+		assert null != ci : "null client to remove??";
+		
+		removeClient(cid);
+		
+		String s = ci + " " + (isError ? "error" : "left")
+								+ ": " + msg;
+		control_.networkFeedback(s);
+		
+		playerMgr_.removeByCliendIt(cid);
+
+		updateConnectedInfo();
+	}
+
+	// this is announced by the server itself
+	public void clientError(int cid, String reason)
+	{
+		assert isHosting() : "clientError() only for server!";
+		goneClientHandling(cid, reason, true);
+	}
 	
 	//////////////
 	// The following methods will have to be removed,
@@ -111,13 +193,13 @@ public class NetworkControl
 	// END to remove
 	
 	
-	public boolean startHosting()
+	public boolean startServer()
 	{
 		try
 		{
-			MasterClient master = new MasterClient(control_);
+			MasterClient master = new MasterClient(control_, this);
 			client_ = master;
-			server_ = new Server(control_, master);
+			server_ = new Server(control_, master, this);
 			master.setServer(server_);
 			server_.setMaxClientNumber(Globals.ONLINE_DEFAULT_CLIENT_MAX_NUMBER);
 			onlineState_ = ONLINE_STATE.SERVER;
@@ -126,7 +208,7 @@ public class NetworkControl
 		{
 			client_ = null;
 			String msg = "Could not start server: "+e.getLocalizedMessage();
-			control_.displayServerMessage(msg);
+			control_.networkFeedback(msg);
 		}
 		
 		return client_ != null;
@@ -175,7 +257,7 @@ public class NetworkControl
 	public void joinGame(InetAddress addr)
 			throws IOException
 	{
-		client_ = new Client(control_);
+		client_ = new Client(control_, this);
 		client_.connect(addr);
 		client_.start();
 		onlineState_ = ONLINE_STATE.CLIENT;
